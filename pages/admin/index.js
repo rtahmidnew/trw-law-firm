@@ -158,6 +158,7 @@ export default function AdminDashboard() {
   )
 
   const openCases = cases.filter(c => c.status === 'open')
+  const pendingCases = cases.filter(c => c.status === 'pending')
   const closedCases = cases.filter(c => c.status === 'closed')
   const recentCases = cases.slice(0, 8)
 
@@ -170,6 +171,7 @@ export default function AdminDashboard() {
   const stats = [
     { label: 'Total Cases', value: cases.length, color: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200', href: '/admin/all-cases' },
     { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800 hover:bg-green-100 border-green-200', href: '/admin/all-cases?status=open' },
+    { label: 'Pending', value: pendingCases.length, color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200', href: '/admin/all-cases?status=pending' },
     { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300', href: '/admin/all-cases?status=closed' },
   ]
 
@@ -188,8 +190,8 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Clickable Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Clickable Stats — 4 cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {stats.map(s => (
           <Link key={s.label} href={s.href}>
             <div className={`rounded-xl p-4 border cursor-pointer transition-all ${s.color}`}>
@@ -201,68 +203,75 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Main layout: Instructions Preview (left) + Associates & Recent Cases (right) */}
+      {/* Main layout: Left sidebar (Instructions + Associates) + Right (Recent Cases) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        {/* LEFT: Instructions Preview Widget */}
-        <div className="lg:col-span-1">
-          <InstructionsPreview />
-        </div>
+        {/* LEFT SIDEBAR: Instructions Preview + Associates */}
+        <div className="lg:col-span-1 space-y-5">
 
-        {/* RIGHT: Associates + Recent Cases */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Associates */}
-          <div>
-            <h2 className="text-base font-semibold text-gray-800 mb-3">Associates</h2>
-            <div className="space-y-2">
+          {/* Instructions Preview Widget */}
+          <InstructionsPreview />
+
+          {/* Associates Widget */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+              <h2 className="text-sm font-semibold text-gray-800">👥 Associates</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{associates.length} team member{associates.length !== 1 ? 's' : ''}</p>
+            </div>
+            <div className="divide-y divide-gray-50">
               {associateStats.length === 0 && (
-                <p className="text-sm text-gray-400">No associates yet.</p>
+                <p className="text-xs text-gray-400 px-4 py-4">No associates yet.</p>
               )}
               {associateStats.map(a => (
-                <Link key={a.id} href={`/admin/associate/${a.id}`}>
-                  <div className="bg-white border border-gray-200 hover:border-blue-400 rounded-xl p-4 cursor-pointer transition-all">
-                    <p className="text-sm font-semibold text-gray-900">{a.full_name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{a.total} cases · {a.open} open</p>
+                <div key={a.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: 'rgb(0, 200, 150)' }}>
+                    {a.full_name?.charAt(0).toUpperCase()}
                   </div>
-                </Link>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{a.full_name}</p>
+                    <p className="text-xs text-gray-400">{a.total} cases · {a.open} open</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* Recent Cases */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-semibold text-gray-800">Recent Cases</h2>
-              <Link href="/admin/all-cases">
-                <span className="text-sm text-blue-700 hover:underline cursor-pointer">View all →</span>
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {recentCases.map(c => (
-                <Link key={c.id} href={`/cases/${c.id}`}>
-                  <div className="bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{c.client_name}</p>
-                          <StatusBadge status={c.status} />
-                          <VisibilityBadge isPublic={c.is_public} />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {c.case_type}
-                          {c.profiles?.full_name && <span className="text-gray-400"> · {c.profiles.full_name}</span>}
-                        </p>
+        </div>
+
+        {/* RIGHT: Recent Cases */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-800">Recent Cases</h2>
+            <Link href="/admin/all-cases">
+              <span className="text-sm text-blue-700 hover:underline cursor-pointer">View all →</span>
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {recentCases.map(c => (
+              <Link key={c.id} href={`/cases/${c.id}`}>
+                <div className="bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{c.client_name}</p>
+                        <StatusBadge status={c.status} />
+                        <VisibilityBadge isPublic={c.is_public} />
                       </div>
-                      <p className="text-xs text-gray-400 shrink-0">
-                        {new Date(c.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {c.case_type}
+                        {c.profiles?.full_name && <span className="text-gray-400"> · {c.profiles.full_name}</span>}
                       </p>
                     </div>
+                    <p className="text-xs text-gray-400 shrink-0">
+                      {new Date(c.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </p>
                   </div>
-                </Link>
-              ))}
-            </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
+
       </div>
     </Layout>
   )
