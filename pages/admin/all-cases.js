@@ -25,8 +25,20 @@ export default function AllCases() {
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [visFilter, setVisFilter] = useState('all') // 'all' | 'public' | 'private'
+  const [visFilter, setVisFilter] = useState('all')
   const [search, setSearch] = useState('')
+
+  // Read status from URL query param on mount and when query changes
+  useEffect(() => {
+    if (router.isReady) {
+      const s = router.query.status
+      if (s === 'open' || s === 'closed') {
+        setFilter(s)
+      } else {
+        setFilter('all')
+      }
+    }
+  }, [router.isReady, router.query.status])
 
   useEffect(() => {
     async function load() {
@@ -46,7 +58,7 @@ export default function AllCases() {
 
   const filtered = cases.filter(c => {
     const matchStatus = filter === 'all' || c.status === filter
-    const matchVis = visFilter === 'all' || (visFilter === 'public' ? c.is_public : !c.is_public)
+    const matchVis = visFilter === 'all' || (visFilter === 'public' ? c.is_public !== false : c.is_public === false)
     const q = search.toLowerCase()
     const matchSearch = !q ||
       c.client_name?.toLowerCase().includes(q) ||
@@ -57,19 +69,36 @@ export default function AllCases() {
     return matchStatus && matchVis && matchSearch
   })
 
+  function handleFilterChange(newFilter) {
+    setFilter(newFilter)
+    // Update URL without full navigation
+    const query = newFilter !== 'all' ? { status: newFilter } : {}
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true })
+  }
+
   if (loading) return (
     <Layout>
       <div className="flex items-center justify-center h-64 text-gray-400 text-sm">Loading...</div>
     </Layout>
   )
 
+  const openCount = cases.filter(c => c.status === 'open').length
+  const closedCount = cases.filter(c => c.status === 'closed').length
+
   return (
     <Layout>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Cases</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {filter === 'open' ? 'Open Cases' : filter === 'closed' ? 'Closed Cases' : 'All Cases'}
+          </h1>
           <p className="text-gray-500 text-sm">{filtered.length} of {cases.length} cases</p>
         </div>
+        <Link href="/cases/new">
+          <button className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+            <span className="text-lg leading-none">+</span> Open New Case
+          </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -83,15 +112,19 @@ export default function AllCases() {
             className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1">
-            {['all', 'open', 'pending', 'closed'].map(s => (
+            {[
+              { key: 'all', label: `All (${cases.length})` },
+              { key: 'open', label: `Open (${openCount})` },
+              { key: 'closed', label: `Closed (${closedCount})` },
+            ].map(s => (
               <button
-                key={s}
-                onClick={() => setFilter(s)}
-                className={`px-4 py-1.5 rounded text-sm font-medium capitalize transition-colors ${
-                  filter === s ? 'bg-blue-700 text-white' : 'text-gray-600 hover:text-blue-700'
+                key={s.key}
+                onClick={() => handleFilterChange(s.key)}
+                className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                  filter === s.key ? 'bg-blue-700 text-white' : 'text-gray-600 hover:text-blue-700'
                 }`}
               >
-                {s}
+                {s.label}
               </button>
             ))}
           </div>
@@ -123,6 +156,11 @@ export default function AllCases() {
         <div className="text-center py-16 text-gray-400">
           <p className="text-3xl mb-2">📂</p>
           <p>No cases match your filter.</p>
+          {filter !== 'all' && (
+            <button onClick={() => handleFilterChange('all')} className="mt-3 text-blue-700 hover:underline text-sm">
+              Show all cases
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
