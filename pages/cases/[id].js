@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
@@ -55,6 +56,12 @@ export default function CaseDetail() {
 
   // Visibility update
   const [updatingVisibility, setUpdatingVisibility] = useState(false)
+
+  // Client Portal
+  const [portalModalOpen, setPortalModalOpen] = useState(false)
+  const [portalLink, setPortalLink] = useState(null)
+  const [generatingPortal, setGeneratingPortal] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -115,6 +122,34 @@ export default function CaseDetail() {
     setCaseData(data)
     setEditing(false)
     setSavingEdit(false)
+  }
+
+  // ── Client Portal ──────────────────────────────────────────
+  async function generatePortalLink() {
+    setGeneratingPortal(true)
+    // Check if a token already exists for this case
+    const { data: existing } = await supabase
+      .from('client_portal_tokens')
+      .select('token')
+      .eq('case_id', id)
+      .eq('is_active', true)
+      .single()
+    if (existing) {
+      setPortalLink(`${window.location.origin}/portal/${existing.token}`)
+      setGeneratingPortal(false)
+      return
+    }
+    // Generate a new token
+    const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + Date.now().toString(36)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('client_portal_tokens').insert({
+      case_id: id,
+      token,
+      created_by: user.id,
+      is_active: true,
+    })
+    setPortalLink(`${window.location.origin}/portal/${token}`)
+    setGeneratingPortal(false)
   }
 
   // ── Timeline ──────────────────────────────────────────────
@@ -418,6 +453,26 @@ export default function CaseDetail() {
               >
                 ✏ Edit Case Details
               </button>
+              {/* Feature buttons */}
+              <div className="flex flex-col gap-1.5">
+                {isPartner && (
+                  <Link href={`/cases/invoice/${id}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 text-xs font-medium text-green-700 hover:bg-green-50 transition-all">
+                    🧾 Invoices
+                  </Link>
+                )}
+                <Link href={`/cases/emails/${id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-300 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-all">
+                  📧 Email Threads
+                </Link>
+                {isPartner && (
+                  <button
+                    onClick={() => { setPortalLink(null); setPortalModalOpen(true); }}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-purple-300 text-xs font-medium text-purple-700 hover:bg-purple-50 transition-all">
+                    🔗 Client Portal
+                  </button>
+                )}
+              </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Change status</label>
                 <select
@@ -851,6 +906,33 @@ export default function CaseDetail() {
       )}
 
       {/* ─── PREVIEW MODAL ──────────────────────────────────── */}
+      {/* Client Portal Modal */}
+      {portalModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPortalModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">🔗 Client Portal Link</h2>
+            <p className="text-sm text-gray-500 mb-4">Share this link with your client. They can view the case status, timeline, and download their documents.</p>
+            {portalLink ? (
+              <>
+                <div className="bg-gray-50 border rounded-lg px-3 py-2 text-xs font-mono text-gray-700 break-all mb-3">{portalLink}</div>
+                <div className="flex gap-2">
+                  <button onClick={() => { navigator.clipboard.writeText(portalLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
+                    {copied ? '✓ Copied!' : 'Copy Link'}
+                  </button>
+                  <button onClick={() => setPortalModalOpen(false)} className="px-4 py-2 border rounded text-sm text-gray-600 hover:bg-gray-50">Close</button>
+                </div>
+              </>
+            ) : (
+              <button onClick={generatePortalLink} disabled={generatingPortal}
+                className="w-full bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800 disabled:opacity-50">
+                {generatingPortal ? 'Generating...' : 'Generate Portal Link'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {previewDoc && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={closePreview}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
