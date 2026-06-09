@@ -68,6 +68,11 @@ export default function Layout({ children }) {
                         Instructions
                       </span>
                     </Link>
+                    <Link href="/journal">
+                      <span className={`cursor-pointer transition-colors ${router.pathname === '/journal' ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
+                        Journal
+                      </span>
+                    </Link>
                   </>
                 ) : (
                   <>
@@ -79,6 +84,11 @@ export default function Layout({ children }) {
                     <Link href="/instructions">
                       <span className={`cursor-pointer transition-colors ${router.pathname === '/instructions' ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
                         Instructions
+                      </span>
+                    </Link>
+                    <Link href="/journal">
+                      <span className={`cursor-pointer transition-colors ${router.pathname === '/journal' ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
+                        Journal
                       </span>
                     </Link>
                     <Link href="/cases/new">
