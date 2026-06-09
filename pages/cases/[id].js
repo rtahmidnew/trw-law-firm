@@ -41,6 +41,9 @@ export default function CaseDetail() {
   // Status update
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
+  // Visibility update
+  const [updatingVisibility, setUpdatingVisibility] = useState(false)
+
   useEffect(() => {
     if (!id) return
     loadAll()
@@ -216,6 +219,20 @@ export default function CaseDetail() {
     setUpdatingStatus(false)
   }
 
+  // ── Visibility Update ─────────────────────────────────────
+  async function toggleVisibility() {
+    setUpdatingVisibility(true)
+    const newVal = !caseData.is_public
+    const { data } = await supabase
+      .from('cases')
+      .update({ is_public: newVal })
+      .eq('id', id)
+      .select()
+      .single()
+    setCaseData(data)
+    setUpdatingVisibility(false)
+  }
+
   function formatFileSize(bytes) {
     if (!bytes) return ''
     if (bytes < 1024) return bytes + ' B'
@@ -294,6 +311,15 @@ export default function CaseDetail() {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-gray-900">{caseData.client_name}</h1>
               <StatusBadge status={caseData.status} />
+              {caseData.is_public !== false ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                  🌐 Public
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                  🔒 Private
+                </span>
+              )}
             </div>
             <p className="text-blue-700 font-medium mt-1">{caseData.case_type}</p>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-gray-600">
@@ -315,19 +341,53 @@ export default function CaseDetail() {
               <p><span className="text-gray-400">Opened:</span> {new Date(caseData.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
           </div>
-          {/* Status changer */}
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Change status</label>
-            <select
-              value={caseData.status}
-              onChange={e => updateStatus(e.target.value)}
-              disabled={updatingStatus}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="open">Open</option>
-              <option value="pending">Pending</option>
-              <option value="closed">Closed</option>
-            </select>
+          {/* Status + Visibility controls */}
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Change status</label>
+              <select
+                value={caseData.status}
+                onChange={e => updateStatus(e.target.value)}
+                disabled={updatingStatus}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="open">Open</option>
+                <option value="pending">Pending</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            {isPartner && (
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Visibility</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => !caseData.is_public && !updatingVisibility && toggleVisibility()}
+                    disabled={updatingVisibility || caseData.is_public !== false}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      caseData.is_public !== false
+                        ? 'bg-green-50 border-green-400 text-green-800 ring-2 ring-green-400 cursor-default'
+                        : 'border-gray-300 text-gray-600 hover:border-green-400 hover:text-green-700'
+                    }`}
+                  >
+                    🌐 Public
+                  </button>
+                  <button
+                    onClick={() => caseData.is_public !== false && !updatingVisibility && toggleVisibility()}
+                    disabled={updatingVisibility || caseData.is_public === false}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      caseData.is_public === false
+                        ? 'bg-amber-50 border-amber-400 text-amber-800 ring-2 ring-amber-400 cursor-default'
+                        : 'border-gray-300 text-gray-600 hover:border-amber-400 hover:text-amber-700'
+                    }`}
+                  >
+                    🔒 Private
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {updatingVisibility ? 'Updating...' : (caseData.is_public !== false ? 'All members can view.' : 'Only you & partners.')}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

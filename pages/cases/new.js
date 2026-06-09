@@ -31,6 +31,7 @@ export default function NewCase() {
     court_name: '',
     court_case_number: '',
     status: 'open',
+    is_public: true,
   })
 
   useEffect(() => {
@@ -196,18 +197,55 @@ export default function NewCase() {
               </div>
             </div>
 
-            {/* Status */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Initial Status</label>
-              <select
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className="border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-              >
-                <option value="open">Open</option>
-                <option value="pending">Pending</option>
-              </select>
+            {/* Status + Visibility */}
+            <div className="border-b border-gray-100 pb-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Case Settings</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Initial Status</label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, is_public: true }))}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                        form.is_public
+                          ? 'bg-green-50 border-green-400 text-green-800 ring-2 ring-green-400'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <span>🌐</span> Public
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, is_public: false }))}
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                        !form.is_public
+                          ? 'bg-amber-50 border-amber-400 text-amber-800 ring-2 ring-amber-400'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
+                      }`}
+                    >
+                      <span>🔒</span> Private
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    {form.is_public
+                      ? 'All firm members can view this case.'
+                      : 'Only you and partners can view this case.'}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <button

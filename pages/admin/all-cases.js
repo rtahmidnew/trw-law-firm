@@ -5,11 +5,27 @@ import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
 
+function VisibilityBadge({ isPublic }) {
+  if (isPublic) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+        🌐 Public
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      🔒 Private
+    </span>
+  )
+}
+
 export default function AllCases() {
   const router = useRouter()
   const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [visFilter, setVisFilter] = useState('all') // 'all' | 'public' | 'private'
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -30,6 +46,7 @@ export default function AllCases() {
 
   const filtered = cases.filter(c => {
     const matchStatus = filter === 'all' || c.status === filter
+    const matchVis = visFilter === 'all' || (visFilter === 'public' ? c.is_public : !c.is_public)
     const q = search.toLowerCase()
     const matchSearch = !q ||
       c.client_name?.toLowerCase().includes(q) ||
@@ -37,7 +54,7 @@ export default function AllCases() {
       c.court_case_number?.toLowerCase().includes(q) ||
       c.file_number?.toLowerCase().includes(q) ||
       c.profiles?.full_name?.toLowerCase().includes(q)
-    return matchStatus && matchSearch
+    return matchStatus && matchVis && matchSearch
   })
 
   if (loading) return (
@@ -56,24 +73,46 @@ export default function AllCases() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by client, case type, file no., associate..."
-          className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1">
-          {['all', 'open', 'pending', 'closed'].map(s => (
+      <div className="flex flex-col gap-3 mb-5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by client, case type, file no., associate..."
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <div className="flex gap-1 bg-white border border-gray-200 rounded-lg p-1">
+            {['all', 'open', 'pending', 'closed'].map(s => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-4 py-1.5 rounded text-sm font-medium capitalize transition-colors ${
+                  filter === s ? 'bg-blue-700 text-white' : 'text-gray-600 hover:text-blue-700'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Visibility filter */}
+        <div className="flex gap-2">
+          {[
+            { key: 'all', label: 'All Visibility' },
+            { key: 'public', label: '🌐 Public' },
+            { key: 'private', label: '🔒 Private' },
+          ].map(v => (
             <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-4 py-1.5 rounded text-sm font-medium capitalize transition-colors ${
-                filter === s ? 'bg-blue-700 text-white' : 'text-gray-600 hover:text-blue-700'
+              key={v.key}
+              onClick={() => setVisFilter(v.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                visFilter === v.key
+                  ? 'bg-blue-700 text-white border-blue-700'
+                  : 'border-gray-300 text-gray-600 hover:border-blue-400'
               }`}
             >
-              {s}
+              {v.label}
             </button>
           ))}
         </div>
@@ -94,6 +133,7 @@ export default function AllCases() {
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Case Type</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Associate</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Visibility</th>
                 <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">Last Updated</th>
               </tr>
             </thead>
@@ -111,6 +151,9 @@ export default function AllCases() {
                   <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{c.case_type}</td>
                   <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{c.profiles?.full_name || '—'}</td>
                   <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <VisibilityBadge isPublic={c.is_public !== false} />
+                  </td>
                   <td className="px-4 py-3 text-gray-400 hidden lg:table-cell">
                     {new Date(c.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </td>

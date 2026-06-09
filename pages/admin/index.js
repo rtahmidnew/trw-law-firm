@@ -5,13 +5,27 @@ import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
 
+function VisibilityBadge({ isPublic }) {
+  if (isPublic !== false) {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+        🌐
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      🔒
+    </span>
+  )
+}
+
 export default function AdminDashboard() {
   const router = useRouter()
+  const [profile, setProfile] = useState(null)
   const [associates, setAssociates] = useState([])
-  const [caseCounts, setCaseCounts] = useState({})
-  const [recentCases, setRecentCases] = useState([])
+  const [cases, setCases] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({ total: 0, open: 0, pending: 0, closed: 0 })
 
   useEffect(() => {
     async function load() {
@@ -20,43 +34,20 @@ export default function AdminDashboard() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', user.id)
         .single()
+
       if (prof?.role !== 'partner') { router.push('/dashboard'); return }
+      setProfile(prof)
 
-      // Load all associates
-      const { data: assocs } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'associate')
-        .order('full_name')
+      const [assocRes, casesRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('role', 'associate'),
+        supabase.from('cases').select('*, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+      ])
 
-      // Load all cases (partners can see all due to RLS)
-      const { data: allCases } = await supabase
-        .from('cases')
-        .select('*, profiles!cases_assigned_to_fkey(full_name)')
-        .order('updated_at', { ascending: false })
-
-      // Count cases per associate
-      const counts = {}
-      allCases?.forEach(c => {
-        if (c.assigned_to) {
-          counts[c.assigned_to] = counts[c.assigned_to] || { total: 0, open: 0, pending: 0, closed: 0 }
-          counts[c.assigned_to].total++
-          counts[c.assigned_to][c.status]++
-        }
-      })
-
-      setAssociates(assocs || [])
-      setCaseCounts(counts)
-      setRecentCases((allCases || []).slice(0, 10))
-      setStats({
-        total: allCases?.length || 0,
-        open: allCases?.filter(c => c.status === 'open').length || 0,
-        pending: allCases?.filter(c => c.status === 'pending').length || 0,
-        closed: allCases?.filter(c => c.status === 'closed').length || 0,
-      })
+      setAssociates(assocRes.data || [])
+      setCases(casesRes.data || [])
       setLoading(false)
     }
     load()
@@ -65,67 +56,69 @@ export default function AdminDashboard() {
   if (loading) return (
     <Layout>
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400 text-sm">Loading firm overview...</div>
+        <div className="text-gray-400 text-sm">Loading dashboard...</div>
       </div>
     </Layout>
   )
 
+  const openCases = cases.filter(c => c.status === 'open')
+  const pendingCases = cases.filter(c => c.status === 'pending')
+  const closedCases = cases.filter(c => c.status === 'closed')
+  const recentCases = cases.slice(0, 8)
+
+  // Per-associate stats
+  const associateStats = associates.map(a => ({
+    ...a,
+    total: cases.filter(c => c.assigned_to === a.id).length,
+    open: cases.filter(c => c.assigned_to === a.id && c.status === 'open').length,
+  }))
+
   return (
     <Layout>
-      <div className="mb-6 flex items-start justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Partner Overview</h1>
-          <p className="text-gray-500 text-sm mt-0.5">TRW Law Firm — Firm-wide case management</p>
+          <p className="text-gray-500 text-sm mt-0.5">{profile?.full_name} · Partner</p>
         </div>
         <Link href="/cases/new">
-          <button className="px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{backgroundColor:'rgb(13,27,42)'}}>
-            + Open New Case
+          <button className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+            <span className="text-lg leading-none">+</span> Open New Case
           </button>
         </Link>
       </div>
 
-      {/* Firm-wide Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Cases', value: stats.total, color: 'bg-blue-50 text-blue-800' },
-          { label: 'Open', value: stats.open, color: 'bg-green-50 text-green-800' },
-          { label: 'Pending', value: stats.pending, color: 'bg-yellow-50 text-yellow-800' },
-          { label: 'Closed', value: stats.closed, color: 'bg-gray-100 text-gray-600' },
+          { label: 'Total Cases', value: cases.length, color: 'bg-blue-50 text-blue-800' },
+          { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800' },
+          { label: 'Pending', value: pendingCases.length, color: 'bg-yellow-50 text-yellow-800' },
+          { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-600' },
         ].map(s => (
           <div key={s.label} className={`rounded-xl p-4 ${s.color}`}>
-            <p className="text-3xl font-bold">{s.value}</p>
+            <p className="text-2xl font-bold">{s.value}</p>
             <p className="text-xs font-medium mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Associates List */}
-        <div className="lg:col-span-1">
+        {/* Associates */}
+        <div>
           <h2 className="text-base font-semibold text-gray-800 mb-3">Associates</h2>
           <div className="space-y-2">
-            {associates.length === 0 && (
-              <div className="text-gray-400 text-sm py-4 text-center">No associates yet.</div>
+            {associateStats.length === 0 && (
+              <p className="text-sm text-gray-400">No associates yet.</p>
             )}
-            {associates.map(a => {
-              const c = caseCounts[a.id] || { total: 0, open: 0, pending: 0, closed: 0 }
-              return (
-                <Link key={a.id} href={`/admin/associate/${a.id}`}>
-                  <div className="bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-blue-800 flex items-center justify-center text-white text-sm font-bold shrink-0">
-                        {a.full_name?.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{a.full_name}</p>
-                        <p className="text-xs text-gray-400">{c.total} cases · {c.open} open</p>
-                      </div>
-                      <span className="text-gray-300 text-sm">›</span>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+            {associateStats.map(a => (
+              <Link key={a.id} href={`/admin/associate/${a.id}`}>
+                <div className="bg-white border border-gray-200 hover:border-blue-400 rounded-xl p-4 cursor-pointer transition-all">
+                  <p className="text-sm font-semibold text-gray-900">{a.full_name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{a.total} cases · {a.open} open</p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -143,9 +136,10 @@ export default function AdminDashboard() {
                 <div className="bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-gray-900 truncate">{c.client_name}</p>
                         <StatusBadge status={c.status} />
+                        <VisibilityBadge isPublic={c.is_public} />
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {c.case_type}

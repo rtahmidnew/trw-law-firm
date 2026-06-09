@@ -5,12 +5,29 @@ import Layout from '../components/Layout'
 import StatusBadge from '../components/StatusBadge'
 import { supabase } from '../lib/supabase'
 
+function VisibilityBadge({ isPublic }) {
+  if (isPublic !== false) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+        🌐 Public
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      🔒 Private
+    </span>
+  )
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [cases, setCases] = useState([])
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [visFilter, setVisFilter] = useState('all') // 'all' | 'mine' | 'public'
+  const [userId, setUserId] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -26,26 +43,33 @@ export default function Dashboard() {
       // Partners shouldn't land here
       if (prof?.role === 'partner') { router.push('/admin'); return }
       setProfile(prof)
+      setUserId(user.id)
 
-      const { data: myCases } = await supabase
+      // RLS already handles visibility: associates see their own cases + public cases
+      const { data: allCases } = await supabase
         .from('cases')
         .select('*')
-        .eq('assigned_to', user.id)
         .order('updated_at', { ascending: false })
 
-      setCases(myCases || [])
+      setCases(allCases || [])
       setLoading(false)
     }
     load()
   }, [])
 
-  const filtered = filter === 'all' ? cases : cases.filter(c => c.status === filter)
+  const visFiltered = cases.filter(c => {
+    if (visFilter === 'mine') return c.assigned_to === userId
+    if (visFilter === 'public') return c.is_public !== false && c.assigned_to !== userId
+    return true // 'all'
+  })
+
+  const filtered = filter === 'all' ? visFiltered : visFiltered.filter(c => c.status === filter)
 
   const counts = {
-    all: cases.length,
-    open: cases.filter(c => c.status === 'open').length,
-    pending: cases.filter(c => c.status === 'pending').length,
-    closed: cases.filter(c => c.status === 'closed').length,
+    all: visFiltered.length,
+    open: visFiltered.filter(c => c.status === 'open').length,
+    pending: visFiltered.filter(c => c.status === 'pending').length,
+    closed: visFiltered.filter(c => c.status === 'closed').length,
   }
 
   if (loading) return (
@@ -61,7 +85,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Cases</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Cases</h1>
           <p className="text-gray-500 text-sm mt-0.5">Welcome back, {profile?.full_name}</p>
         </div>
         <Link href="/cases/new">
@@ -69,6 +93,27 @@ export default function Dashboard() {
             <span className="text-lg leading-none">+</span> Open New Case
           </button>
         </Link>
+      </div>
+
+      {/* Visibility filter tabs */}
+      <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 w-fit mb-4">
+        {[
+          { key: 'all', label: 'All Cases' },
+          { key: 'mine', label: '👤 My Cases' },
+          { key: 'public', label: '🌐 Public Cases' },
+        ].map(v => (
+          <button
+            key={v.key}
+            onClick={() => setVisFilter(v.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              visFilter === v.key
+                ? 'bg-blue-700 text-white shadow-sm'
+                : 'text-gray-600 hover:text-blue-700'
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
       </div>
 
       {/* Stats */}
@@ -109,6 +154,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h2 className="font-semibold text-gray-900 truncate">{c.client_name}</h2>
                       <StatusBadge status={c.status} />
+                      <VisibilityBadge isPublic={c.is_public} />
                     </div>
                     <p className="text-sm text-gray-500 mt-1 truncate">
                       {c.case_type}
