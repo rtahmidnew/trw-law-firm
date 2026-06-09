@@ -40,15 +40,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: 'rgb(13, 27, 42)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        {/* Logo / Title */}
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-800 rounded-full mb-4">
-            <span className="text-white text-2xl font-bold">TRW</span>
+          <div className="flex items-center justify-center mb-4">
+            <img
+              src="/trw-logo.webp"
+              alt="TRW Law Firm"
+              style={{ height: '60px', width: 'auto' }}
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">TRW Law Firm</h1>
-          <p className="text-gray-500 text-sm mt-1">Case Management Portal</p>
+          <p className="text-gray-500 text-sm mt-2">Case Management Portal</p>
         </div>
 
         {/* Error */}
@@ -69,7 +72,8 @@ export default function LoginPage() {
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ '--tw-ring-color': 'rgb(13, 27, 42)' }}
               placeholder="you@trwlaw.com"
             />
           </div>
@@ -82,14 +86,17 @@ export default function LoginPage() {
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'rgb(13, 27, 42)' }}
+            onMouseEnter={e => e.target.style.backgroundColor = 'rgb(25, 50, 80)'}
+            onMouseLeave={e => e.target.style.backgroundColor = 'rgb(13, 27, 42)'}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
