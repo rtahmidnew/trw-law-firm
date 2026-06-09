@@ -72,9 +72,16 @@ export default function AdminDashboard() {
 
   return (
     <Layout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Partner Overview</h1>
-        <p className="text-gray-500 text-sm mt-0.5">TRW Law Firm — Firm-wide case management</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Partner Overview</h1>
+          <p className="text-gray-500 text-sm mt-0.5">TRW Law Firm — Firm-wide case management</p>
+        </div>
+        <Link href="/cases/new">
+          <button className="px-4 py-2 rounded-lg text-sm font-semibold text-white" style={{backgroundColor:'rgb(13,27,42)'}}>
+            + Open New Case
+          </button>
+        </Link>
       </div>
 
       {/* Firm-wide Stats */}
