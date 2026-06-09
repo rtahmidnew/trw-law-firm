@@ -23,6 +23,14 @@ export default function CaseDetail() {
   const [documents, setDocuments] = useState([])
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef()
+  const [docSearch, setDocSearch] = useState('')
+  const [docSort, setDocSort] = useState('date_desc')
+  const [docView, setDocView] = useState('list') // 'list' | 'grid'
+  const [previewDoc, setPreviewDoc] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [renamingDoc, setRenamingDoc] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameSaving, setRenameSaving] = useState(false)
 
   // Deadlines
   const [deadlines, setDeadlines] = useState([])
@@ -124,6 +132,43 @@ export default function CaseDetail() {
     setDocuments(prev => prev.filter(d => d.id !== doc.id))
   }
 
+  async function openPreview(doc) {
+    const { data } = await supabase.storage
+      .from('case-documents')
+      .createSignedUrl(doc.file_path, 300)
+    if (data?.signedUrl) {
+      setPreviewUrl(data.signedUrl)
+      setPreviewDoc(doc)
+    }
+  }
+
+  function closePreview() {
+    setPreviewDoc(null)
+    setPreviewUrl(null)
+  }
+
+  function startRename(doc) {
+    setRenamingDoc(doc.id)
+    setRenameValue(doc.file_name)
+  }
+
+  async function saveRename(doc) {
+    if (!renameValue.trim() || renameValue === doc.file_name) {
+      setRenamingDoc(null)
+      return
+    }
+    setRenameSaving(true)
+    const { data } = await supabase
+      .from('documents')
+      .update({ file_name: renameValue.trim() })
+      .eq('id', doc.id)
+      .select()
+      .single()
+    setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, file_name: data.file_name } : d))
+    setRenamingDoc(null)
+    setRenameSaving(false)
+  }
+
   // ── Deadlines ────────────────────────────────────────────
   async function addDeadline(e) {
     e.preventDefault()
@@ -152,10 +197,10 @@ export default function CaseDetail() {
     setDeadlines(prev => prev.map(d => d.id === data.id ? data : d))
   }
 
-  async function deleteDeadline(id) {
+  async function deleteDeadline(dlId) {
     if (!confirm('Delete this deadline?')) return
-    await supabase.from('deadlines').delete().eq('id', id)
-    setDeadlines(prev => prev.filter(d => d.id !== id))
+    await supabase.from('deadlines').delete().eq('id', dlId)
+    setDeadlines(prev => prev.filter(d => d.id !== dlId))
   }
 
   // ── Status Update ─────────────────────────────────────────
@@ -177,6 +222,43 @@ export default function CaseDetail() {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
+
+  function getDocIcon(ext) {
+    return {
+      PDF: { bg: 'bg-red-100 text-red-700', label: 'PDF' },
+      DOC: { bg: 'bg-blue-100 text-blue-700', label: 'DOC' },
+      DOCX: { bg: 'bg-blue-100 text-blue-700', label: 'DOCX' },
+      XLS: { bg: 'bg-emerald-100 text-emerald-700', label: 'XLS' },
+      XLSX: { bg: 'bg-emerald-100 text-emerald-700', label: 'XLSX' },
+      JPG: { bg: 'bg-purple-100 text-purple-700', label: 'JPG' },
+      JPEG: { bg: 'bg-purple-100 text-purple-700', label: 'JPEG' },
+      PNG: { bg: 'bg-purple-100 text-purple-700', label: 'PNG' },
+      TIFF: { bg: 'bg-purple-100 text-purple-700', label: 'TIFF' },
+      TIF: { bg: 'bg-purple-100 text-purple-700', label: 'TIF' },
+    }[ext] || { bg: 'bg-gray-100 text-gray-600', label: ext || 'FILE' }
+  }
+
+  function isImage(doc) {
+    const ext = doc.file_name.split('.').pop().toUpperCase()
+    return ['JPG', 'JPEG', 'PNG', 'TIFF', 'TIF', 'GIF', 'WEBP'].includes(ext)
+  }
+
+  function isPdf(doc) {
+    return doc.file_name.split('.').pop().toUpperCase() === 'PDF'
+  }
+
+  // Filtered + sorted documents
+  const filteredDocs = documents
+    .filter(d => d.file_name.toLowerCase().includes(docSearch.toLowerCase()))
+    .sort((a, b) => {
+      if (docSort === 'date_desc') return new Date(b.uploaded_at) - new Date(a.uploaded_at)
+      if (docSort === 'date_asc') return new Date(a.uploaded_at) - new Date(b.uploaded_at)
+      if (docSort === 'name_asc') return a.file_name.localeCompare(b.file_name)
+      if (docSort === 'name_desc') return b.file_name.localeCompare(a.file_name)
+      if (docSort === 'size_desc') return (b.file_size || 0) - (a.file_size || 0)
+      if (docSort === 'size_asc') return (a.file_size || 0) - (b.file_size || 0)
+      return 0
+    })
 
   if (loading) return (
     <Layout>
@@ -280,30 +362,28 @@ export default function CaseDetail() {
       {/* ─── TIMELINE TAB ───────────────────────────────────── */}
       {tab === 'Timeline' && (
         <div className="space-y-4">
-          {/* Add entry form */}
           <form onSubmit={addTimelineEntry} className="bg-white rounded-xl border border-gray-200 p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Add update to timeline
-              </label>
-              <textarea
-                value={newEntry}
-                onChange={e => setNewEntry(e.target.value)}
-                rows={3}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="e.g. Drafted and filed writ petition. Hearing scheduled for next week."
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  type="submit"
-                  disabled={addingEntry || !newEntry.trim()}
-                  className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-50 transition-colors"
-                >
-                  {addingEntry ? 'Adding...' : 'Add Entry'}
-                </button>
-              </div>
-            </form>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add update to timeline
+            </label>
+            <textarea
+              value={newEntry}
+              onChange={e => setNewEntry(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              placeholder="e.g. Drafted and filed writ petition. Hearing scheduled for next week."
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                type="submit"
+                disabled={addingEntry || !newEntry.trim()}
+                className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {addingEntry ? 'Adding...' : 'Add Entry'}
+              </button>
+            </div>
+          </form>
 
-          {/* Timeline entries */}
           {timeline.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <p className="text-3xl mb-2">📋</p>
@@ -311,12 +391,10 @@ export default function CaseDetail() {
             </div>
           ) : (
             <div className="relative">
-              {/* Vertical line */}
               <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
               <div className="space-y-4 pl-10">
                 {timeline.map(entry => (
                   <div key={entry.id} className="relative">
-                    {/* Dot */}
                     <div className="absolute -left-6 top-4 w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow" />
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
                       <p className="text-sm text-gray-900 leading-relaxed">{entry.entry_text}</p>
@@ -337,56 +415,219 @@ export default function CaseDetail() {
       {/* ─── DOCUMENTS TAB ──────────────────────────────────── */}
       {tab === 'Documents' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-dashed border-blue-300 p-6 text-center">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff,.tif,.xlsx,.xls"
-              />
-              <p className="text-3xl mb-2">📎</p>
-              <p className="text-sm text-gray-600 mb-3">Upload PDFs, Word docs, scanned images</p>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50"
-              >
-                {uploading ? 'Uploading...' : 'Choose Files'}
-              </button>
+
+          {/* Upload zone */}
+          <div className="bg-white rounded-xl border border-dashed border-blue-300 p-5 flex flex-col sm:flex-row items-center gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff,.tif,.xlsx,.xls"
+            />
+            <div className="flex-1 text-sm text-gray-500">
+              <span className="text-2xl mr-2">📎</span>
+              Upload PDFs, Word docs, scanned images, spreadsheets
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50 shrink-0"
+            >
+              {uploading ? 'Uploading...' : '+ Upload Files'}
+            </button>
           </div>
 
+          {/* Search + Sort + View toggle toolbar */}
+          {documents.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+              {/* Search */}
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                <input
+                  type="text"
+                  value={docSearch}
+                  onChange={e => setDocSearch(e.target.value)}
+                  placeholder="Search documents..."
+                  className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {docSearch && (
+                  <button
+                    onClick={() => setDocSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                  >✕</button>
+                )}
+              </div>
+
+              {/* Sort */}
+              <select
+                value={docSort}
+                onChange={e => setDocSort(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date_desc">Newest first</option>
+                <option value="date_asc">Oldest first</option>
+                <option value="name_asc">Name A–Z</option>
+                <option value="name_desc">Name Z–A</option>
+                <option value="size_desc">Largest first</option>
+                <option value="size_asc">Smallest first</option>
+              </select>
+
+              {/* View toggle */}
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                <button
+                  onClick={() => setDocView('list')}
+                  className={`px-3 py-2 text-sm ${docView === 'list' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  title="List view"
+                >☰</button>
+                <button
+                  onClick={() => setDocView('grid')}
+                  className={`px-3 py-2 text-sm ${docView === 'grid' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  title="Grid view"
+                >⊞</button>
+              </div>
+
+              {/* Result count */}
+              <span className="text-xs text-gray-400 shrink-0 self-center">
+                {filteredDocs.length} of {documents.length}
+              </span>
+            </div>
+          )}
+
+          {/* No results */}
           {documents.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
               <p className="text-3xl mb-2">📄</p>
               <p>No documents uploaded yet.</p>
             </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-              {documents.map(doc => {
+          ) : filteredDocs.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <p className="text-2xl mb-2">🔍</p>
+              <p>No documents match &ldquo;{docSearch}&rdquo;</p>
+            </div>
+          ) : docView === 'grid' ? (
+            /* ── GRID VIEW ── */
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {filteredDocs.map(doc => {
                 const ext = doc.file_name.split('.').pop().toUpperCase()
-                const iconBg = {
-                  PDF: 'bg-red-100 text-red-700',
-                  DOC: 'bg-blue-100 text-blue-700',
-                  DOCX: 'bg-blue-100 text-blue-700',
-                  JPG: 'bg-green-100 text-green-700',
-                  JPEG: 'bg-green-100 text-green-700',
-                  PNG: 'bg-green-100 text-green-700',
-                }[ext] || 'bg-gray-100 text-gray-600'
-
+                const { bg, label } = getDocIcon(ext)
+                const canPreview = isImage(doc) || isPdf(doc)
                 return (
-                  <div key={doc.id} className="flex items-center gap-4 px-4 py-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${iconBg}`}>
-                      {ext}
+                  <div key={doc.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
+                    {/* Thumbnail area */}
+                    <div
+                      className={`h-24 flex items-center justify-center cursor-pointer ${canPreview ? 'hover:opacity-80' : ''} ${bg}`}
+                      onClick={() => canPreview && openPreview(doc)}
+                    >
+                      {canPreview ? (
+                        <span className="text-4xl">
+                          {isImage(doc) ? '🖼️' : '📄'}
+                        </span>
+                      ) : (
+                        <span className={`text-lg font-bold ${bg}`}>{label}</span>
+                      )}
                     </div>
+                    {/* Info */}
+                    <div className="p-2">
+                      {renamingDoc === doc.id ? (
+                        <div className="flex gap-1">
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }}
+                            className="flex-1 text-xs border border-blue-400 rounded px-1 py-0.5 focus:outline-none"
+                          />
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 text-xs font-bold">✓</button>
+                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400 text-xs">✕</button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-xs font-medium text-gray-800 truncate cursor-pointer hover:text-blue-700"
+                          title={doc.file_name}
+                          onDoubleClick={() => startRename(doc)}
+                        >
+                          {doc.file_name}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-0.5">{formatFileSize(doc.file_size)}</p>
+                      <div className="flex gap-1 mt-1.5">
+                        {canPreview && (
+                          <button onClick={() => openPreview(doc)} className="text-xs text-blue-600 hover:text-blue-800">Preview</button>
+                        )}
+                        <button onClick={() => downloadDocument(doc)} className="text-xs text-blue-600 hover:text-blue-800">↓</button>
+                        <button onClick={() => startRename(doc)} className="text-xs text-gray-400 hover:text-gray-700">✏</button>
+                        <button onClick={() => deleteDocument(doc)} className="text-xs text-red-400 hover:text-red-600 ml-auto">✕</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            /* ── LIST VIEW ── */
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+              {filteredDocs.map(doc => {
+                const ext = doc.file_name.split('.').pop().toUpperCase()
+                const { bg, label } = getDocIcon(ext)
+                const canPreview = isImage(doc) || isPdf(doc)
+                return (
+                  <div key={doc.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 group">
+                    {/* Icon */}
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 cursor-pointer ${bg} ${canPreview ? 'hover:opacity-70' : ''}`}
+                      onClick={() => canPreview && openPreview(doc)}
+                      title={canPreview ? 'Click to preview' : ''}
+                    >
+                      {label}
+                    </div>
+
+                    {/* Name + meta */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{doc.file_name}</p>
+                      {renamingDoc === doc.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }}
+                            className="flex-1 text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none"
+                          />
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 text-sm font-bold px-1">✓</button>
+                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400 text-sm px-1">✕</button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-700"
+                          title={`${doc.file_name} — double-click to rename`}
+                          onDoubleClick={() => startRename(doc)}
+                        >
+                          {doc.file_name}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-400">
                         {formatFileSize(doc.file_size)} · {new Date(doc.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {canPreview && (
+                        <button
+                          onClick={() => openPreview(doc)}
+                          className="text-xs text-gray-500 hover:text-blue-700 border border-gray-200 rounded px-2 py-1"
+                        >
+                          Preview
+                        </button>
+                      )}
+                      <button
+                        onClick={() => startRename(doc)}
+                        className="text-xs text-gray-500 hover:text-blue-700 border border-gray-200 rounded px-2 py-1"
+                        title="Rename"
+                      >
+                        ✏ Rename
+                      </button>
                       <button
                         onClick={() => downloadDocument(doc)}
                         className="text-blue-700 hover:text-blue-900 text-sm font-medium"
@@ -394,11 +635,11 @@ export default function CaseDetail() {
                         Download
                       </button>
                       <button
-                          onClick={() => deleteDocument(doc)}
-                          className="text-red-400 hover:text-red-600 text-sm"
-                        >
-                          ✕
-                        </button>
+                        onClick={() => deleteDocument(doc)}
+                        className="text-red-400 hover:text-red-600 text-sm"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 )
@@ -494,11 +735,11 @@ export default function CaseDetail() {
                     }`}
                   >
                     <input
-                        type="checkbox"
-                        checked={dl.is_complete}
-                        onChange={() => toggleDeadline(dl)}
-                        className="mt-0.5 w-4 h-4 accent-blue-700 cursor-pointer"
-                      />
+                      type="checkbox"
+                      checked={dl.is_complete}
+                      onChange={() => toggleDeadline(dl)}
+                      className="mt-0.5 w-4 h-4 accent-blue-700 cursor-pointer"
+                    />
                     <div className="flex-1">
                       <p className={`text-sm font-semibold ${dl.is_complete ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                         {dl.title}
@@ -510,16 +751,73 @@ export default function CaseDetail() {
                       {dl.notes && <p className="text-xs text-gray-400 mt-1">{dl.notes}</p>}
                     </div>
                     <button
-                        onClick={() => deleteDeadline(dl.id)}
-                        className="text-gray-300 hover:text-red-400 text-sm"
-                      >
-                        ✕
-                      </button>
+                      onClick={() => deleteDeadline(dl.id)}
+                      className="text-gray-300 hover:text-red-400 text-sm"
+                    >
+                      ✕
+                    </button>
                   </div>
                 )
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── PREVIEW MODAL ──────────────────────────────────── */}
+      {previewDoc && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={closePreview}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="text-sm font-semibold text-gray-800 truncate">{previewDoc.file_name}</span>
+                <span className="text-xs text-gray-400 shrink-0">{formatFileSize(previewDoc.file_size)}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-4">
+                <button
+                  onClick={() => downloadDocument(previewDoc)}
+                  className="text-sm text-blue-700 hover:text-blue-900 font-medium border border-blue-200 rounded-lg px-3 py-1.5"
+                >
+                  Download
+                </button>
+                <button
+                  onClick={closePreview}
+                  className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Preview content */}
+            <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-4">
+              {previewUrl && isImage(previewDoc) ? (
+                <img
+                  src={previewUrl}
+                  alt={previewDoc.file_name}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow"
+                />
+              ) : previewUrl && isPdf(previewDoc) ? (
+                <iframe
+                  src={previewUrl}
+                  className="w-full h-full min-h-[60vh] rounded-lg"
+                  title={previewDoc.file_name}
+                />
+              ) : (
+                <div className="text-center text-gray-400">
+                  <p className="text-4xl mb-3">📄</p>
+                  <p className="text-sm">Loading preview...</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </Layout>
