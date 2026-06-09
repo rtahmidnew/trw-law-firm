@@ -281,8 +281,7 @@ export default function CaseDetail() {
       {tab === 'Timeline' && (
         <div className="space-y-4">
           {/* Add entry form */}
-          {!isPartner && (
-            <form onSubmit={addTimelineEntry} className="bg-white rounded-xl border border-gray-200 p-4">
+          <form onSubmit={addTimelineEntry} className="bg-white rounded-xl border border-gray-200 p-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add update to timeline
               </label>
@@ -303,7 +302,6 @@ export default function CaseDetail() {
                 </button>
               </div>
             </form>
-          )}
 
           {/* Timeline entries */}
           {timeline.length === 0 ? (
@@ -339,8 +337,7 @@ export default function CaseDetail() {
       {/* ─── DOCUMENTS TAB ──────────────────────────────────── */}
       {tab === 'Documents' && (
         <div className="space-y-4">
-          {!isPartner && (
-            <div className="bg-white rounded-xl border border-dashed border-blue-300 p-6 text-center">
+          <div className="bg-white rounded-xl border border-dashed border-blue-300 p-6 text-center">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -358,8 +355,7 @@ export default function CaseDetail() {
               >
                 {uploading ? 'Uploading...' : 'Choose Files'}
               </button>
-            </div>
-          )}
+          </div>
 
           {documents.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
@@ -397,14 +393,12 @@ export default function CaseDetail() {
                       >
                         Download
                       </button>
-                      {!isPartner && (
-                        <button
+                      <button
                           onClick={() => deleteDocument(doc)}
                           className="text-red-400 hover:text-red-600 text-sm"
                         >
                           ✕
                         </button>
-                      )}
                     </div>
                   </div>
                 )
@@ -417,7 +411,7 @@ export default function CaseDetail() {
       {/* ─── DEADLINES TAB ──────────────────────────────────── */}
       {tab === 'Deadlines' && (
         <div className="space-y-4">
-          {!isPartner && !showDeadlineForm && (
+          {!showDeadlineForm && (
             <button
               onClick={() => setShowDeadlineForm(true)}
               className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
@@ -499,14 +493,12 @@ export default function CaseDetail() {
                       'border-gray-200'
                     }`}
                   >
-                    {!isPartner && (
-                      <input
+                    <input
                         type="checkbox"
                         checked={dl.is_complete}
                         onChange={() => toggleDeadline(dl)}
                         className="mt-0.5 w-4 h-4 accent-blue-700 cursor-pointer"
                       />
-                    )}
                     <div className="flex-1">
                       <p className={`text-sm font-semibold ${dl.is_complete ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                         {dl.title}
@@ -517,14 +509,12 @@ export default function CaseDetail() {
                       </p>
                       {dl.notes && <p className="text-xs text-gray-400 mt-1">{dl.notes}</p>}
                     </div>
-                    {!isPartner && (
-                      <button
+                    <button
                         onClick={() => deleteDeadline(dl.id)}
                         className="text-gray-300 hover:text-red-400 text-sm"
                       >
                         ✕
                       </button>
-                    )}
                   </div>
                 )
               })}
