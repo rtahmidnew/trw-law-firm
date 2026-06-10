@@ -442,9 +442,22 @@ export default function InvoicePage() {
             <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: '#6b7280' }}>
               <div>TRW is a trademark and/or registered trademark of Tahmidur Remura Wahid Law Firm.</div>
               <div style={{ textAlign: 'right' }}>
-                This is an official invoice generated from{' '}
-                <a href={`https://trw.ac/cases/invoice/${inv.case_id}`} style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>trw.ac</a>.
-                {' '}Clients may verify authenticity at that link.
+                {inv.public_token ? (
+                  <>
+                    Verify this invoice at:{' '}
+                    <a
+                      href={`https://trw.ac/invoice/view/${inv.public_token}`}
+                      style={{ color: '#111827', fontWeight: 700, textDecoration: 'underline', wordBreak: 'break-all' }}
+                    >
+                      trw.ac/invoice/view/{inv.public_token}
+                    </a>
+                  </>
+                ) : (
+                  <>This is an official invoice generated from{' '}
+                    <a href="https://trw.ac" style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>trw.ac</a>.
+                    {' '}Use &ldquo;Copy Client Verification Link&rdquo; above to generate a shareable link.
+                  </>
+                )}
               </div>
             </div>
           </div>{/* end footer */}
