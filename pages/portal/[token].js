@@ -208,7 +208,7 @@ export default function ClientPortal() {
                 {invoices.map(inv => {
                   const items = inv.line_items || [];
                   const subtotal = items.reduce((s, i) => s + (parseFloat(i.govt_cost) || 0) + (parseFloat(i.professional_fee) || 0), 0);
-                  const ait = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0) * ((inv.ait_percentage || 10) / 100);
+                  const ait = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0) * ((inv.ait_percentage ?? 10) / 100);
                   const total = subtotal + ait;
                   const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency;
                   return (

@@ -64,7 +64,7 @@ export default function PublicInvoiceView() {
   const items = inv.line_items || [];
   const subtotal = items.reduce((s, i) => s + (parseFloat(i.govt_cost) || 0) + (parseFloat(i.professional_fee) || 0), 0);
   const aitBase = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0);
-  const ait = aitBase * ((inv.ait_percentage || 10) / 100);
+  const ait = aitBase * ((inv.ait_percentage ?? 10) / 100);
   const total = subtotal + ait;
   const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : (inv.currency || '$');
 
@@ -182,7 +182,7 @@ export default function PublicInvoiceView() {
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{sym}{subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 <tr>
-                  <td colSpan={3} style={{ padding: '4px 10px', textAlign: 'right', fontSize: 11, color: '#6b7280' }}>AIT ({inv.ait_percentage || 10}% on Professional Fee)</td>
+                  <td colSpan={3} style={{ padding: '4px 10px', textAlign: 'right', fontSize: 11, color: '#6b7280' }}>AIT ({inv.ait_percentage ?? 10}% on Professional Fee)</td>
                   <td style={{ padding: '4px 10px', textAlign: 'right', color: '#374151' }}>{sym}{ait.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
                 <tr style={{ background: TRW_DARK }}>

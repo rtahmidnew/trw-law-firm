@@ -137,7 +137,7 @@ export default function InvoicePage() {
       matter_reference: inv.matter_reference || '',
       project_description: inv.project_description || '',
       line_items: inv.line_items || [{ sl: 1, description: '', govt_cost: '', professional_fee: '' }],
-      ait_percentage: inv.ait_percentage || 10,
+      ait_percentage: inv.ait_percentage ?? 10,
       currency: inv.currency || 'USD',
       payment_schedule: inv.payment_schedule || { retainer: 50, delivery: 50 },
       notes: inv.notes || '',
@@ -199,7 +199,7 @@ export default function InvoicePage() {
     const items = inv.line_items || [];
     const subtotal = items.reduce((s, i) => s + (parseFloat(i.govt_cost) || 0) + (parseFloat(i.professional_fee) || 0), 0);
     const aitBase = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0);
-    const ait = aitBase * ((inv.ait_percentage || 10) / 100);
+    const ait = aitBase * ((inv.ait_percentage ?? 10) / 100);
     const total = subtotal + ait;
     const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : inv.currency;
 
@@ -637,7 +637,7 @@ export default function InvoicePage() {
             {invoices.map(inv => {
               const items = inv.line_items || [];
               const subtotal = items.reduce((s, i) => s + (parseFloat(i.govt_cost) || 0) + (parseFloat(i.professional_fee) || 0), 0);
-              const ait = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0) * ((inv.ait_percentage || 10) / 100);
+              const ait = items.reduce((s, i) => s + (parseFloat(i.professional_fee) || 0), 0) * ((inv.ait_percentage ?? 10) / 100);
               const total = subtotal + ait;
               const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : inv.currency;
               return (
