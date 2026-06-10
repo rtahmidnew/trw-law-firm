@@ -520,13 +520,11 @@ export default function CaseDetail() {
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all">
                   <IconMail size={12} /> Email Threads
                 </Link>
-                {isPartner && (
-                  <button
+                <button
                     onClick={() => { setPortalLink(null); setPortalModalOpen(true); }}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all">
                     <IconLink size={12} /> Client Portal
                   </button>
-                )}
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Change status</label>
