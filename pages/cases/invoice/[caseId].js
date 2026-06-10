@@ -208,7 +208,7 @@ export default function InvoicePage() {
                   <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
                   House 410, Road 29, Mohakhali DOHS<br />
                   Dhaka 1206, Bangladesh<br />
-                  Tel: +880 1711-985987<br />
+                  Tel: +8801708-000660<br />
                   Email: info@trfirm.com<br />
                   Web: www.trw.ac
                 </div>
@@ -324,7 +324,7 @@ export default function InvoicePage() {
                   Country: Bangladesh<br />
                   <br />
                   <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>Mobile Banking (bKash)</strong><br />
-                  bKash Number: <strong style={{ color: '#1e293b' }}>01711-985987</strong><br />
+                  bKash Number: <strong style={{ color: '#1e293b' }}>+8801708-000660</strong><br />
                   Account Type: Personal
                 </div>
               </div>
@@ -343,7 +343,7 @@ export default function InvoicePage() {
               </div>
               <div style={{ textAlign: 'right', fontSize: 10, color: '#64748b' }}>
                 <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
-                info@trfirm.com · www.trw.ac · +880 1711-985987
+                info@trfirm.com · www.trw.ac · +8801708-000660
               </div>
             </div>
           </div>
