@@ -30,6 +30,7 @@ export default function CaseDetail() {
   // Timeline
   const [timeline, setTimeline] = useState([])
   const [newEntry, setNewEntry] = useState('')
+  const [newEntryDate, setNewEntryDate] = useState(() => new Date().toISOString().split('T')[0])
   const [addingEntry, setAddingEntry] = useState(false)
 
   // Documents
@@ -163,14 +164,17 @@ export default function CaseDetail() {
     setAddingEntry(true)
 
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('timeline_entries')
-      .insert({ case_id: id, user_id: user.id, entry_text: newEntry.trim() })
+      .insert({ case_id: id, user_id: user.id, entry_text: newEntry.trim(), entry_date: newEntryDate || null })
       .select('*, profiles(full_name)')
       .single()
 
-    setTimeline(prev => [data, ...prev])
+    if (data) {
+      setTimeline(prev => [data, ...prev])
+    }
     setNewEntry('')
+    setNewEntryDate(new Date().toISOString().split('T')[0])
     setAddingEntry(false)
   }
 
@@ -704,6 +708,15 @@ export default function CaseDetail() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Add update to timeline
             </label>
+            <div className="mb-3">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Event Date</label>
+              <input
+                type="date"
+                value={newEntryDate}
+                onChange={e => setNewEntryDate(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
             <textarea
               value={newEntry}
               onChange={e => setNewEntry(e.target.value)}
@@ -737,8 +750,16 @@ export default function CaseDetail() {
                     <div className="bg-white rounded-xl border border-gray-200 p-4">
                       <p className="text-sm text-gray-900 leading-relaxed">{entry.entry_text}</p>
                       <p className="text-xs text-gray-400 mt-2">
-                        {entry.profiles?.full_name} · {new Date(entry.created_at).toLocaleDateString('en-GB', {
-                          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                        {entry.entry_date ? (
+                          <span className="font-medium text-gray-500">
+                            {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        ) : null}
+                        {entry.entry_date && ' · '}
+                        {entry.profiles?.full_name || 'Team'}
+                        {' · Added '}
+                        {new Date(entry.created_at).toLocaleDateString('en-GB', {
+                          day: 'numeric', month: 'short', year: 'numeric'
                         })}
                       </p>
                     </div>
