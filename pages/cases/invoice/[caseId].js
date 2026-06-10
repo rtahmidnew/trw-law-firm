@@ -32,9 +32,9 @@ export default function InvoicePage() {
     matter_reference: '',
     project_description: '',
     line_items: [{ sl: 1, description: '', govt_cost: '', professional_fee: '' }],
-    ait_percentage: 10,
-    currency: 'USD',
-    payment_schedule: { retainer: 50, delivery: 50 },
+    ait_percentage: 0,
+    currency: 'BDT',
+    payment_schedule: { retainer: 100, delivery: 0 },
     notes: '',
     status: 'draft',
   });
@@ -137,9 +137,9 @@ export default function InvoicePage() {
       matter_reference: inv.matter_reference || '',
       project_description: inv.project_description || '',
       line_items: inv.line_items || [{ sl: 1, description: '', govt_cost: '', professional_fee: '' }],
-      ait_percentage: inv.ait_percentage ?? 10,
+      ait_percentage: inv.ait_percentage ?? 0,
       currency: inv.currency || 'USD',
-      payment_schedule: inv.payment_schedule || { retainer: 50, delivery: 50 },
+      payment_schedule: inv.payment_schedule || { retainer: 100, delivery: 0 },
       notes: inv.notes || '',
       status: inv.status || 'draft',
     });
@@ -336,12 +336,12 @@ export default function InvoicePage() {
               <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 700 }}>Payment Schedule</div>
               <div className="inv-pay-grid" style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
-                  <span style={{ color: '#475569' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.retainer ?? 0}% Retainer</strong><br />
+                  <span style={{ color: '#475569' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer ?? 0) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.delivery || 50}% Upon Delivery</strong><br />
-                  <span style={{ color: '#475569' }}>Due upon completion: {sym}{(total * ((inv.payment_schedule?.delivery || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.delivery ?? 0}% Upon Delivery</strong><br />
+                  <span style={{ color: '#475569' }}>Due upon completion: {sym}{(total * ((inv.payment_schedule?.delivery ?? 0) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
@@ -596,7 +596,7 @@ export default function InvoicePage() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Retainer % (upon engagement)</label>
                 <input type="number" min="0" max="100" value={form.payment_schedule.retainer}
-                  onChange={e => setForm(f => ({ ...f, payment_schedule: { retainer: parseFloat(e.target.value) || 0, delivery: 100 - (parseFloat(e.target.value) || 0) } }))}
+                  onChange={e => setForm(f => ({ ...f, payment_schedule: { ...f.payment_schedule, retainer: parseFloat(e.target.value) || 0 } }))}
                   className="w-full border rounded px-3 py-2 text-sm" />
               </div>
               <div>

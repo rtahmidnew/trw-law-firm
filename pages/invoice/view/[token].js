@@ -68,8 +68,8 @@ export default function PublicInvoiceView() {
   const total = subtotal + ait;
   const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : (inv.currency || '$');
 
-  const retainerPct = inv.payment_schedule?.retainer || 50;
-  const deliveryPct = inv.payment_schedule?.delivery || 50;
+  const retainerPct = inv.payment_schedule?.retainer ?? 0;
+  const deliveryPct = inv.payment_schedule?.delivery ?? 0;
   const retainerAmt = total * (retainerPct / 100);
   const deliveryAmt = total * (deliveryPct / 100);
 
