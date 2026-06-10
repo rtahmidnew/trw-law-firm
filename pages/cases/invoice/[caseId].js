@@ -306,28 +306,40 @@ export default function InvoicePage() {
             </div>
 
             {/* Payment instructions */}
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '16px 18px', marginBottom: 20, fontSize: 11 }}>
-              <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, fontWeight: 700 }}>Payment Instructions</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div style={{ lineHeight: 1.7 }}>
-                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>Bank Transfer (Bangladesh)</strong><br />
-                  Account Name: Tahmidur Rahman<br />
-                  Bank: Dutch-Bangla Bank Ltd<br />
-                  Account No: 105.110.42975<br />
-                  Branch: Gulshan, Dhaka<br />
-                  Routing No: 090261502
-                </div>
-                <div style={{ lineHeight: 1.7 }}>
-                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>International Transfer</strong><br />
-                  MoneyGram / Western Union<br />
-                  Receiver: Tahmidur Rahman<br />
-                  Country: Bangladesh<br />
-                  <br />
-                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>Mobile Banking (bKash)</strong><br />
-                  bKash Number: <strong style={{ color: '#1e293b' }}>+8801708-000660</strong><br />
-                  Account Type: Personal
-                </div>
-              </div>
+            {/* Payment Instructions — two-column table matching the reference design */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 10, color: TRW_DARK, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 700, textDecoration: 'underline' }}>Payment Instructions:</div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9' }}>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px 12px', textAlign: 'left', width: '50%', fontWeight: 700, color: '#1e293b' }}>Bangladesh Account</th>
+                    <th style={{ border: '1px solid #cbd5e1', padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#1e293b' }}>Other Accepted Method</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '14px 12px', verticalAlign: 'top', lineHeight: 2 }}>
+                      <strong>Account Details—</strong><br />
+                      <strong>Account Name–</strong> Tahmidur Remura Wahid<br />
+                      <strong>Account Number–</strong> 1161070004652<br />
+                      <strong>Bank Name–</strong> Eastern Bank PLC.<br />
+                      <strong>Branch Name–</strong> Banani Branch<br />
+                      <strong>Routing Number–</strong> 095260439<br />
+                      <strong>Swift Code–</strong> EBLDBDDH
+                    </td>
+                    <td style={{ border: '1px solid #cbd5e1', padding: '14px 12px', verticalAlign: 'top', lineHeight: 2 }}>
+                      MoneyGram, Western Union, Ria Money Transfer in the name of <strong>Mohammad Wahidul Alam.</strong><br />
+                      <br />
+                      <strong>Bkash number:</strong><br />
+                      01708000660 (merchant)<br />
+                      <br />
+                      <strong>SSLCOMMERZ</strong><br />
+                      <span style={{ color: '#64748b' }}>(please request for the online link, if required)</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style={{ fontSize: 10, color: '#64748b', marginTop: 8, fontStyle: 'italic' }}>Should you have any further queries please feel free to contact us.</div>
             </div>
 
             {inv.notes && (
@@ -339,28 +351,63 @@ export default function InvoicePage() {
           </div>{/* end padding div */}
 
           {/* ── FOOTER — Spaceship-style light grey ── */}
-          <div style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '20px 32px', display: 'flex', alignItems: 'flex-start', gap: 40 }}>
-            {/* Logo (dark version) */}
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img
-                src="/trw-logo.webp"
-                alt="TRW"
-                style={{ height: 36 }}
-              />
-            </div>
-            {/* Contact info */}
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 10, color: '#475569', lineHeight: 1.8 }}>
-              <div>
-                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Contact</div>
-                <div>📧 info@trfirm.com</div>
-                <div>🌐 trwbd.com</div>
-                <div>📞 +8801708-000660</div>
+          <div style={{ background: '#f4f5f7', borderTop: '1px solid #e2e8f0', padding: '22px 32px' }}>
+            {/* Top row: logo + contact + address */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 40, marginBottom: 14 }}>
+              {/* Logo — dark (no invert, natural dark logo on light bg) */}
+              <div style={{ flexShrink: 0 }}>
+                <img src="/trw-logo.webp" alt="TRW" style={{ height: 34 }} />
               </div>
-              <div>
-                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Address</div>
-                <div>House 410, Road 29</div>
-                <div>Mohakhali New DOHS</div>
-                <div>Dhaka 1206, Bangladesh</div>
+              {/* Contact columns */}
+              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.9 }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#111827', marginBottom: 3, fontSize: 10 }}>Contact</div>
+                  {/* monochrome mail icon */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    info@trfirm.com
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    info@trwbd.com
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    info@tahmidur.com
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    trwbd.com
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    +8801708-000660
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    +8801847220062
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    +8801708080817
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: '#111827', marginBottom: 3, fontSize: 10 }}>Address</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 2, flexShrink: 0 }}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>House 410, Road 29, Mohakhali New DOHS, Dhaka 1206, Bangladesh</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Bottom row: trademark + official invoice note */}
+            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9, color: '#6b7280' }}>
+              <div>TRW is a trademark and/or registered trademark of Tahmidur Remura Wahid Law Firm.</div>
+              <div style={{ textAlign: 'right' }}>
+                This is an official invoice generated from{' '}
+                <a href={`https://trw.ac/cases/invoice/${inv.case_id}`} style={{ color: '#111827', fontWeight: 600, textDecoration: 'underline' }}>trw.ac</a>.
+                {' '}Clients may verify authenticity at that link.
               </div>
             </div>
           </div>{/* end footer */}
