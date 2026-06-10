@@ -32,6 +32,10 @@ export default function CaseDetail() {
   const [newEntry, setNewEntry] = useState('')
   const [newEntryDate, setNewEntryDate] = useState(() => new Date().toISOString().split('T')[0])
   const [addingEntry, setAddingEntry] = useState(false)
+  const [editingEntry, setEditingEntry] = useState(null) // entry id being edited
+  const [editEntryText, setEditEntryText] = useState('')
+  const [editEntryDate, setEditEntryDate] = useState('')
+  const [savingEntryEdit, setSavingEntryEdit] = useState(false)
 
   // Documents
   const [documents, setDocuments] = useState([])
@@ -176,6 +180,35 @@ export default function CaseDetail() {
     setNewEntry('')
     setNewEntryDate(new Date().toISOString().split('T')[0])
     setAddingEntry(false)
+  }
+
+  // ── Timeline Edit / Delete (partner only) ──────────────
+  function startEditEntry(entry) {
+    setEditingEntry(entry.id)
+    setEditEntryText(entry.entry_text)
+    setEditEntryDate(entry.entry_date || new Date().toISOString().split('T')[0])
+  }
+
+  async function saveEntryEdit(entryId) {
+    if (!editEntryText.trim()) return
+    setSavingEntryEdit(true)
+    const { data } = await supabase
+      .from('timeline_entries')
+      .update({ entry_text: editEntryText.trim(), entry_date: editEntryDate || null })
+      .eq('id', entryId)
+      .select('*, profiles(full_name)')
+      .single()
+    if (data) {
+      setTimeline(prev => prev.map(e => e.id === entryId ? data : e))
+    }
+    setEditingEntry(null)
+    setSavingEntryEdit(false)
+  }
+
+  async function deleteTimelineEntry(entryId) {
+    if (!confirm('Delete this timeline entry?')) return
+    await supabase.from('timeline_entries').delete().eq('id', entryId)
+    setTimeline(prev => prev.filter(e => e.id !== entryId))
   }
 
   // ── Documents ────────────────────────────────────────────
@@ -745,22 +778,79 @@ export default function CaseDetail() {
                 {timeline.map(entry => (
                   <div key={entry.id} className="relative">
                     <div className="absolute -left-6 top-4 w-3 h-3 rounded-full bg-blue-600 border-2 border-white shadow" />
-                    <div className="bg-white rounded-xl border border-gray-200 p-4">
-                      <p className="text-sm text-gray-900 leading-relaxed">{entry.entry_text}</p>
-                      <p className="text-xs text-gray-400 mt-2">
-                        {entry.entry_date ? (
-                          <span className="font-medium text-gray-500">
-                            {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
-                        ) : null}
-                        {entry.entry_date && ' · '}
-                        {entry.profiles?.full_name || 'Team'}
-                        {' · Added '}
-                        {new Date(entry.created_at).toLocaleDateString('en-GB', {
-                          day: 'numeric', month: 'short', year: 'numeric'
-                        })}
-                      </p>
-                    </div>
+                    {editingEntry === entry.id ? (
+                      /* ── EDIT MODE for this entry ── */
+                      <div className="bg-white rounded-xl border border-blue-300 p-4">
+                        <div className="mb-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Event Date</label>
+                          <input
+                            type="date"
+                            value={editEntryDate}
+                            onChange={e => setEditEntryDate(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <textarea
+                          value={editEntryText}
+                          onChange={e => setEditEntryText(e.target.value)}
+                          rows={3}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                        />
+                        <div className="flex gap-2 mt-2 justify-end">
+                          <button
+                            onClick={() => saveEntryEdit(entry.id)}
+                            disabled={savingEntryEdit || !editEntryText.trim()}
+                            className="bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold px-4 py-1.5 rounded-lg disabled:opacity-50 transition-colors"
+                          >
+                            {savingEntryEdit ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingEntry(null)}
+                            className="text-gray-500 hover:text-gray-700 text-xs px-3 py-1.5 border border-gray-300 rounded-lg"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── VIEW MODE for this entry ── */
+                      <div className="bg-white rounded-xl border border-gray-200 p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm text-gray-900 leading-relaxed flex-1">{entry.entry_text}</p>
+                          {isPartner && (
+                            <div className="flex gap-1 shrink-0">
+                              <button
+                                onClick={() => startEditEntry(entry)}
+                                title="Edit entry"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              >
+                                <IconEdit size={12} />
+                              </button>
+                              <button
+                                onClick={() => deleteTimelineEntry(entry.id)}
+                                title="Delete entry"
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                <IconTrash size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          {entry.entry_date ? (
+                            <span className="font-medium text-gray-500">
+                              {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                          ) : null}
+                          {entry.entry_date && ' · '}
+                          {entry.profiles?.full_name || 'Team'}
+                          {' · Added '}
+                          {new Date(entry.created_at).toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short', year: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
