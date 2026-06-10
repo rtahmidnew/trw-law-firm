@@ -184,8 +184,8 @@ export default function InvoicePage() {
         </Head>
         <div className="no-print bg-gray-100 p-4 flex gap-3 items-center sticky top-0 z-10 shadow">
           <button onClick={() => setView('list')} className="text-sm text-gray-600 hover:text-gray-900">← Back</button>
-          <button onClick={() => window.print()} className="ml-auto bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">🖨 Print / Save PDF</button>
-          <button onClick={() => { openInvoice(inv); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-300">✏️ Edit</button>
+          <button onClick={() => window.print()} className="ml-auto bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">Print / Save PDF</button>
+          <button onClick={() => { openInvoice(inv); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-300">Edit</button>
         </div>
 
         <div ref={printRef} className="print-page bg-white max-w-4xl mx-auto my-6 shadow-lg" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -480,7 +480,7 @@ export default function InvoicePage() {
       <div className="max-w-4xl mx-auto p-6">
         {invoices.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
-            <div className="text-4xl mb-3">🧾</div>
+            <div className="text-4xl mb-3 text-gray-300" style={{fontSize:36}}>&#9632;</div>
             <p className="text-gray-500 mb-4">No invoices yet for this case.</p>
             <button onClick={() => { setSelectedInvoice(null); setView('create'); }} className="bg-green-700 text-white px-5 py-2 rounded text-sm font-medium hover:bg-green-800">
               Create First Invoice
@@ -496,7 +496,7 @@ export default function InvoicePage() {
               const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : inv.currency;
               return (
                 <div key={inv.id} className="bg-white rounded-lg border p-4 flex items-center gap-4">
-                  <div className="text-2xl">🧾</div>
+                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-bold text-gray-500">INV</div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-800">{inv.invoice_number}</div>
                     <div className="text-sm text-gray-500">{inv.to_name} · {new Date(inv.invoice_date).toLocaleDateString('en-GB')}</div>

@@ -177,7 +177,7 @@ export default function InstructionsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Instructions & To-Do Board</h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {pendingCount} pending · {doneCount} completed
-            {urgentCount > 0 && <span className="ml-2 text-red-600 font-medium">⚠ {urgentCount} urgent</span>}
+            {urgentCount > 0 && <span className="ml-2 text-red-600 font-medium">{urgentCount} urgent</span>}
           </p>
         </div>
         {isPartner && (
@@ -185,7 +185,7 @@ export default function InstructionsPage() {
             onClick={() => setShowForm(!showForm)}
             className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors"
           >
-            {showForm ? '✕ Cancel' : '+ New Task'}
+            {showForm ? 'Cancel' : '+ New Task'}
           </button>
         )}
       </div>
@@ -348,7 +348,7 @@ export default function InstructionsPage() {
                     className={`mt-0.5 w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${item.is_complete ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-blue-500'}`}
                     title={item.is_complete ? 'Mark as pending' : 'Mark as done'}
                   >
-                    {item.is_complete && <span className="text-white text-xs leading-none font-bold">✓</span>}
+                    {item.is_complete && <span className="text-white text-xs leading-none font-bold">&#10003;</span>}
                   </button>
 
                   {/* Content */}
@@ -385,7 +385,7 @@ export default function InstructionsPage() {
                           {item.case && (
                             <Link href={`/cases/${item.case_id}`}>
                               <span className="text-xs text-blue-600 hover:underline cursor-pointer">
-                                📁 {item.case.client_name}
+                                {item.case.client_name}
                               </span>
                             </Link>
                           )}
@@ -403,7 +403,7 @@ export default function InstructionsPage() {
                         {item.is_complete && (
                           <div className="mt-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
                             <p className="text-xs text-green-700">
-                              ✓ Completed by <strong>{item.completed_by_profile?.full_name || 'Associate'}</strong>
+                              Completed by <strong>{item.completed_by_profile?.full_name || 'Associate'}</strong>
                               {item.completed_at && ` on ${new Date(item.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                             </p>
                             {item.completed_note && (
@@ -448,7 +448,7 @@ export default function InstructionsPage() {
                           className="text-gray-300 hover:text-red-400 text-sm transition-colors flex-shrink-0 p-1"
                           title="Delete task"
                         >
-                          ✕
+                          x
                         </button>
                       )}
                     </div>

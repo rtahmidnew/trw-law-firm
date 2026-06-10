@@ -537,14 +537,14 @@ export default function Journal() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <span style={{ fontSize: 18 }}>🔔</span>
+                              <span style={{ fontSize: 14, color: "#374151" }}>&#9650;</span>
                               <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#0d1b2a' }}>{r.title}</h4>
                               {isOverdue && <span style={{ fontSize: 11, background: '#fef2f2', color: '#dc2626', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>OVERDUE</span>}
                             </div>
                             {r.description && <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>{r.description}</p>}
-                            <div style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>📅 {formatDateTime(r.reminder_datetime)}</div>
-                            {r.cases && <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 4 }}>📁 {r.cases.client_name}</div>}
-                            {r.notify_partner && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>✉ Partner notified at info@trfirm.com</div>}
+                            <div style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>{formatDateTime(r.reminder_datetime)}</div>
+                            {r.cases && <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 4 }}>{r.cases.client_name}</div>}
+                            {r.notify_partner && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Partner notified at info@trfirm.com</div>}
                           </div>
                           <button onClick={() => handleDeleteReminder(r.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#dc2626', marginLeft: 16 }}>Delete</button>
                         </div>

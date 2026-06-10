@@ -91,7 +91,7 @@ export default function AssociateView() {
       {/* Cases */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-3xl mb-2">📂</p>
+          <p className="text-3xl mb-2" style={{fontSize:28, color:'#d1d5db'}}>&#9723;</p>
           <p>No {filter !== 'all' ? filter : ''} cases.</p>
         </div>
       ) : (

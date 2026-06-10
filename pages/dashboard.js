@@ -9,13 +9,13 @@ function VisibilityBadge({ isPublic }) {
   if (isPublic !== false) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-        🌐 Public
+        Public
       </span>
     )
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-      🔒 Private
+      Private
     </span>
   )
 }
@@ -99,8 +99,8 @@ export default function Dashboard() {
       <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 w-fit mb-4">
         {[
           { key: 'all', label: 'All Cases' },
-          { key: 'mine', label: '👤 My Cases' },
-          { key: 'public', label: '🌐 Public Cases' },
+          { key: 'mine', label: 'My Cases' },
+          { key: 'public', label: 'Public Cases' },
         ].map(v => (
           <button
             key={v.key}
@@ -138,7 +138,7 @@ export default function Dashboard() {
       {/* Cases List */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">📂</p>
+          <p className="text-4xl mb-3 text-gray-300">&#9723;</p>
           <p className="font-medium">No cases found</p>
           <p className="text-sm mt-1">
             {filter !== 'all' ? `No ${filter} cases.` : 'Open your first case to get started.'}

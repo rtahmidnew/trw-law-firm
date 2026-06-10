@@ -95,7 +95,7 @@ export default function ClientPortal() {
   if (error) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="bg-white rounded-xl shadow p-10 max-w-md text-center">
-        <div className="text-5xl mb-4">🔒</div>
+        <div className="text-5xl mb-4 text-gray-300">&#9632;</div>
         <h1 className="text-xl font-semibold text-gray-800 mb-2">Access Denied</h1>
         <p className="text-gray-500 text-sm">{error}</p>
         <p className="text-gray-400 text-xs mt-4">TRW Law Firm · info@trfirm.com</p>
@@ -117,7 +117,7 @@ export default function ClientPortal() {
             <div className="font-semibold text-sm">Client Case Portal</div>
             <div className="text-xs text-gray-400">Tahmidur Remura Wahid — TRW Law Firm</div>
           </div>
-          <div className="ml-auto text-xs text-gray-400">🔒 Secure · Read-only</div>
+          <div className="ml-auto text-xs text-gray-400">Secure · Read-only</div>
         </div>
 
         <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -153,7 +153,7 @@ export default function ClientPortal() {
           {timeline.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>📋</span> Case Timeline
+                Case Timeline
               </h2>
               <div className="space-y-3">
                 {timeline.map((entry, i) => (
@@ -176,7 +176,7 @@ export default function ClientPortal() {
           {documents.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>📎</span> Documents
+                Documents
               </h2>
               <div className="space-y-2">
                 {documents.map(doc => (
@@ -202,7 +202,7 @@ export default function ClientPortal() {
           {invoices.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <h2 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <span>🧾</span> Invoices
+                Invoices
               </h2>
               <div className="space-y-2">
                 {invoices.map(inv => {
@@ -213,7 +213,7 @@ export default function ClientPortal() {
                   const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency;
                   return (
                     <div key={inv.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="text-xl">🧾</div>
+                      <div className="text-xs font-bold text-gray-500 bg-gray-100 rounded px-1">INV</div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-800">{inv.invoice_number}</p>
                         <p className="text-xs text-gray-400">{new Date(inv.invoice_date).toLocaleDateString('en-GB')}</p>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Layout from '../../components/Layout'
 import { supabase } from '../../lib/supabase'
+import { IconGlobe, IconLock } from '../../components/Icons'
 
 const CASE_TYPES = [
   'Corporate / Commercial',
@@ -221,22 +222,22 @@ export default function NewCase() {
                       onClick={() => setForm(prev => ({ ...prev, is_public: true }))}
                       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                         form.is_public
-                          ? 'bg-green-50 border-green-400 text-green-800 ring-2 ring-green-400'
+                          ? 'bg-gray-100 border-gray-500 text-gray-800 ring-2 ring-gray-400'
                           : 'border-gray-300 text-gray-600 hover:border-gray-400'
                       }`}
                     >
-                      <span>🌐</span> Public
+                      <IconGlobe size={14} /> Public
                     </button>
                     <button
                       type="button"
                       onClick={() => setForm(prev => ({ ...prev, is_public: false }))}
                       className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
                         !form.is_public
-                          ? 'bg-amber-50 border-amber-400 text-amber-800 ring-2 ring-amber-400'
+                          ? 'bg-gray-100 border-gray-500 text-gray-800 ring-2 ring-gray-400'
                           : 'border-gray-300 text-gray-600 hover:border-gray-400'
                       }`}
                     >
-                      <span>🔒</span> Private
+                      <IconLock size={14} /> Private
                     </button>
                   </div>
                   <p className="text-xs text-gray-400 mt-1.5">

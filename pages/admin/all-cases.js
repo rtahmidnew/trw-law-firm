@@ -4,18 +4,19 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
+import { IconGlobe, IconLock, IconFolder } from '../../components/Icons'
 
 function VisibilityBadge({ isPublic }) {
   if (isPublic) {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-        🌐 Public
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+        <IconGlobe size={10} /> Public
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-      🔒 Private
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+      <IconLock size={10} /> Private
     </span>
   )
 }
@@ -133,8 +134,8 @@ export default function AllCases() {
         <div className="flex gap-2">
           {[
             { key: 'all', label: 'All Visibility' },
-            { key: 'public', label: '🌐 Public' },
-            { key: 'private', label: '🔒 Private' },
+            { key: 'public', label: 'Public' },
+            { key: 'private', label: 'Private' },
           ].map(v => (
             <button
               key={v.key}
@@ -154,7 +155,7 @@ export default function AllCases() {
       {/* Table */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-3xl mb-2">📂</p>
+          <div className="flex justify-center mb-2"><IconFolder size={32} className="text-gray-300" /></div>
           <p>No cases match your filter.</p>
           {filter !== 'all' && (
             <button onClick={() => handleFilterChange('all')} className="mt-3 text-blue-700 hover:underline text-sm">

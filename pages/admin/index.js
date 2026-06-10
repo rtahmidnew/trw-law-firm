@@ -4,18 +4,19 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
+import { IconGlobe, IconLock, IconClipboard, IconAlertTriangle } from '../../components/Icons'
 
 function VisibilityBadge({ isPublic }) {
   if (isPublic !== false) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-        🌐
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+        <IconGlobe size={10} />
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-      🔒
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+      <IconLock size={10} />
     </span>
   )
 }
@@ -50,7 +51,7 @@ function InstructionsPreview() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
         <div>
-          <h2 className="text-sm font-semibold text-gray-800">📋 Instructions & To-Do</h2>
+          <h2 className="text-sm font-semibold text-gray-800 flex items-center gap-1.5"><IconClipboard size={13} /> Instructions & To-Do</h2>
           {!loading && (
             <p className="text-xs text-gray-400 mt-0.5">{items.length} pending task{items.length !== 1 ? 's' : ''}</p>
           )}
@@ -91,7 +92,7 @@ function InstructionsPreview() {
                     )}
                     {item.due_date && (
                       <span className={`text-xs ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-                        {isOverdue ? '⚠ ' : ''}Due {new Date(item.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {isOverdue && <IconAlertTriangle size={10} className="inline mr-0.5" />}Due {new Date(item.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </span>
                     )}
                   </div>
@@ -215,7 +216,7 @@ export default function AdminDashboard() {
           {/* Associates Widget */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-              <h2 className="text-sm font-semibold text-gray-800">👥 Associates</h2>
+              <h2 className="text-sm font-semibold text-gray-800">Associates</h2>
               <p className="text-xs text-gray-400 mt-0.5">{associates.length} team member{associates.length !== 1 ? 's' : ''}</p>
             </div>
             <div className="divide-y divide-gray-50">

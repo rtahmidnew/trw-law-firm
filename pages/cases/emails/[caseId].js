@@ -104,7 +104,7 @@ export default function CaseEmails() {
 
       <div className="max-w-4xl mx-auto p-6 space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-          <strong>📧 Gmail Integration</strong> — Link email threads from info@trfirm.com to this case.
+          <strong>Gmail Integration</strong> — Link email threads from info@trfirm.com to this case.
           Linked emails appear here and in the case timeline for a complete record of client communications.
           <br />
           <span className="text-blue-600 text-xs mt-1 block">
@@ -164,7 +164,7 @@ export default function CaseEmails() {
 
         {linkedEmails.length === 0 ? (
           <div className="bg-white rounded-lg border p-12 text-center">
-            <div className="text-4xl mb-3">📧</div>
+            <div className="text-4xl mb-3 text-gray-300" style={{fontSize:36}}>&#9993;</div>
             <p className="text-gray-500 mb-4">No email threads linked to this case yet.</p>
             <button onClick={() => setShowLinkForm(true)} className="bg-blue-600 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-700">
               Link First Email Thread
@@ -181,7 +181,7 @@ export default function CaseEmails() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-800 text-sm truncate">{email.subject}</span>
-                      {email.has_attachment && <span className="text-gray-400 text-xs">📎</span>}
+                      {email.has_attachment && <span className="text-gray-400 text-xs"></span>}
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">
                       {email.from_name ? `${email.from_name} <${email.from_email}>` : email.from_email}

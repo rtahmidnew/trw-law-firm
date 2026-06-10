@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
+import { IconGlobe, IconLock, IconInvoice, IconMail, IconLink, IconEdit, IconClipboard, IconFile, IconFileText, IconSearch, IconX, IconList, IconGrid, IconCheck, IconTrash, IconAlertTriangle, IconBell, IconCalendar, IconEye, IconDownload, IconPaperclip, IconClock } from '../../components/Icons'
 
 const TABS = ['Timeline', 'Documents', 'Deadlines']
 
@@ -415,12 +416,12 @@ export default function CaseDetail() {
                 <h1 className="text-2xl font-bold text-gray-900">{caseData.client_name}</h1>
                 <StatusBadge status={caseData.status} />
                 {caseData.is_public !== false ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                    🌐 Public
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                    <IconGlobe size={10} /> Public
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                    🔒 Private
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                    <IconLock size={10} /> Private
                   </span>
                 )}
               </div>
@@ -451,25 +452,25 @@ export default function CaseDetail() {
                 onClick={startEdit}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-700 transition-all"
               >
-                ✏ Edit Case Details
+                <IconEdit size={12} /> Edit Case Details
               </button>
               {/* Feature buttons */}
               <div className="flex flex-col gap-1.5">
                 {isPartner && (
                   <Link href={`/cases/invoice/${id}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-green-300 text-xs font-medium text-green-700 hover:bg-green-50 transition-all">
-                    🧾 Invoices
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all">
+                    <IconInvoice size={12} /> Invoices
                   </Link>
                 )}
                 <Link href={`/cases/emails/${id}`}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-blue-300 text-xs font-medium text-blue-700 hover:bg-blue-50 transition-all">
-                  📧 Email Threads
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all">
+                  <IconMail size={12} /> Email Threads
                 </Link>
                 {isPartner && (
                   <button
                     onClick={() => { setPortalLink(null); setPortalModalOpen(true); }}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-purple-300 text-xs font-medium text-purple-700 hover:bg-purple-50 transition-all">
-                    🔗 Client Portal
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-all">
+                    <IconLink size={12} /> Client Portal
                   </button>
                 )}
               </div>
@@ -494,22 +495,22 @@ export default function CaseDetail() {
                       disabled={updatingVisibility || caseData.is_public !== false}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
                         caseData.is_public !== false
-                          ? 'bg-green-50 border-green-400 text-green-800 ring-2 ring-green-400 cursor-default'
-                          : 'border-gray-300 text-gray-600 hover:border-green-400 hover:text-green-700'
+                          ? 'bg-gray-100 border-gray-500 text-gray-800 ring-2 ring-gray-400 cursor-default'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
                       }`}
                     >
-                      🌐 Public
+                      <IconGlobe size={12} /> Public
                     </button>
                     <button
                       onClick={() => caseData.is_public !== false && !updatingVisibility && toggleVisibility()}
                       disabled={updatingVisibility || caseData.is_public === false}
                       className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
                         caseData.is_public === false
-                          ? 'bg-amber-50 border-amber-400 text-amber-800 ring-2 ring-amber-400 cursor-default'
-                          : 'border-gray-300 text-gray-600 hover:border-amber-400 hover:text-amber-700'
+                          ? 'bg-gray-100 border-gray-500 text-gray-800 ring-2 ring-gray-400 cursor-default'
+                          : 'border-gray-300 text-gray-600 hover:border-gray-400'
                       }`}
                     >
-                      🔒 Private
+                      <IconLock size={12} /> Private
                     </button>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
@@ -662,7 +663,7 @@ export default function CaseDetail() {
 
           {timeline.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">📋</p>
+              <div className="flex justify-center mb-2"><IconClipboard size={28} className="text-gray-300" /></div>
               <p>No timeline entries yet.</p>
             </div>
           ) : (
@@ -702,7 +703,7 @@ export default function CaseDetail() {
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.tiff,.tif,.xlsx,.xls"
             />
             <div className="flex-1 text-sm text-gray-500">
-              <span className="text-2xl mr-2">📎</span>
+              <IconPaperclip size={18} className="inline mr-2 text-gray-400" />
               Upload PDFs, Word docs, scanned images, spreadsheets
             </div>
             <button
@@ -718,7 +719,7 @@ export default function CaseDetail() {
           {documents.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><IconSearch size={14} /></span>
                 <input
                   type="text"
                   value={docSearch}
@@ -727,7 +728,7 @@ export default function CaseDetail() {
                   className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {docSearch && (
-                  <button onClick={() => setDocSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                  <button onClick={() => setDocSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><IconX size={12} /></button>
                 )}
               </div>
               <select
@@ -743,8 +744,8 @@ export default function CaseDetail() {
                 <option value="size_asc">Smallest first</option>
               </select>
               <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-                <button onClick={() => setDocView('list')} className={`px-3 py-2 text-sm ${docView === 'list' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`} title="List view">☰</button>
-                <button onClick={() => setDocView('grid')} className={`px-3 py-2 text-sm ${docView === 'grid' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`} title="Grid view">⊞</button>
+                <button onClick={() => setDocView('list')} className={`px-3 py-2 ${docView === 'list' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`} title="List view"><IconList size={14} /></button>
+                <button onClick={() => setDocView('grid')} className={`px-3 py-2 ${docView === 'grid' ? 'bg-blue-700 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`} title="Grid view"><IconGrid size={14} /></button>
               </div>
               <span className="text-xs text-gray-400 shrink-0 self-center">{filteredDocs.length} of {documents.length}</span>
             </div>
@@ -752,12 +753,12 @@ export default function CaseDetail() {
 
           {documents.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">📄</p>
+              <div className="flex justify-center mb-2"><IconFile size={28} className="text-gray-300" /></div>
               <p>No documents uploaded yet.</p>
             </div>
           ) : filteredDocs.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
-              <p className="text-2xl mb-2">🔍</p>
+              <div className="flex justify-center mb-2"><IconSearch size={24} className="text-gray-300" /></div>
               <p>No documents match &ldquo;{docSearch}&rdquo;</p>
             </div>
           ) : docView === 'grid' ? (
@@ -769,14 +770,14 @@ export default function CaseDetail() {
                 return (
                   <div key={doc.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
                     <div className={`h-24 flex items-center justify-center cursor-pointer ${canPreview ? 'hover:opacity-80' : ''} ${bg}`} onClick={() => canPreview && openPreview(doc)}>
-                      <span className="text-4xl">{isImage(doc) ? '🖼️' : '📄'}</span>
+                      <div className="flex items-center justify-center">{isImage(doc) ? <IconEye size={28} className="text-gray-400" /> : <IconFile size={28} className="text-gray-400" />}</div>
                     </div>
                     <div className="p-2">
                       {renamingDoc === doc.id ? (
                         <div className="flex gap-1">
                           <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }} className="flex-1 text-xs border border-blue-400 rounded px-1 py-0.5 focus:outline-none" />
-                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 text-xs font-bold">✓</button>
-                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400 text-xs">✕</button>
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700"><IconCheck size={12} /></button>
+                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400"><IconX size={12} /></button>
                         </div>
                       ) : (
                         <p className="text-xs font-medium text-gray-800 truncate cursor-pointer hover:text-blue-700" title={doc.file_name} onDoubleClick={() => startRename(doc)}>{doc.file_name}</p>
@@ -785,8 +786,8 @@ export default function CaseDetail() {
                       <div className="flex gap-1 mt-1.5">
                         {canPreview && <button onClick={() => openPreview(doc)} className="text-xs text-blue-600 hover:text-blue-800">Preview</button>}
                         <button onClick={() => downloadDocument(doc)} className="text-xs text-blue-600 hover:text-blue-800">↓ Download</button>
-                        <button onClick={() => startRename(doc)} className="text-xs text-gray-400 hover:text-gray-700">✏</button>
-                        <button onClick={() => deleteDocument(doc)} className="text-xs text-red-400 hover:text-red-600 ml-auto">✕</button>
+                        <button onClick={() => startRename(doc)} className="text-xs text-gray-400 hover:text-gray-700"><IconEdit size={11} /></button>
+                        <button onClick={() => deleteDocument(doc)} className="text-xs text-red-400 hover:text-red-600 ml-auto"><IconX size={11} /></button>
                       </div>
                     </div>
                   </div>
@@ -812,8 +813,8 @@ export default function CaseDetail() {
                       {renamingDoc === doc.id ? (
                         <div className="flex items-center gap-1">
                           <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }} className="flex-1 text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none" />
-                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 text-sm font-bold px-1">✓</button>
-                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400 text-sm px-1">✕</button>
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 px-1"><IconCheck size={14} /></button>
+                          <button onClick={() => setRenamingDoc(null)} className="text-gray-400 px-1"><IconX size={14} /></button>
                         </div>
                       ) : (
                         <p className="text-sm font-medium text-gray-900 truncate cursor-pointer hover:text-blue-700" title={`${doc.file_name} — double-click to rename`} onDoubleClick={() => startRename(doc)}>{doc.file_name}</p>
@@ -828,13 +829,13 @@ export default function CaseDetail() {
                           Preview
                         </button>
                       )}
-                      <button onClick={() => startRename(doc)} className="text-xs text-gray-500 hover:text-blue-700 border border-gray-200 rounded px-2 py-1" title="Rename">
-                        ✏ Rename
+                      <button onClick={() => startRename(doc)} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-blue-700 border border-gray-200 rounded px-2 py-1" title="Rename">
+                        <IconEdit size={11} /> Rename
                       </button>
                       <button onClick={() => downloadDocument(doc)} className="text-blue-700 hover:text-blue-900 text-sm font-medium border border-blue-200 rounded px-2 py-1">
                         Download
                       </button>
-                      <button onClick={() => deleteDocument(doc)} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+                      <button onClick={() => deleteDocument(doc)} className="text-red-400 hover:text-red-600"><IconX size={14} /></button>
                     </div>
                   </div>
                 )
@@ -877,7 +878,7 @@ export default function CaseDetail() {
           )}
           {deadlines.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <p className="text-3xl mb-2">📅</p>
+              <div className="flex justify-center mb-2"><IconCalendar size={28} className="text-gray-300" /></div>
               <p>No deadlines set yet.</p>
             </div>
           ) : (
@@ -891,12 +892,12 @@ export default function CaseDetail() {
                     <div className="flex-1">
                       <p className={`text-sm font-semibold ${dl.is_complete ? 'line-through text-gray-400' : 'text-gray-900'}`}>{dl.title}</p>
                       <p className={`text-xs mt-0.5 font-medium ${isOverdue ? 'text-red-600' : isDueToday ? 'text-yellow-700' : 'text-gray-500'}`}>
-                        {isOverdue ? '⚠ Overdue · ' : isDueToday ? '🔔 Due Today · ' : ''}
+                        {isOverdue && <><IconAlertTriangle size={11} className="inline mr-0.5" />Overdue · </>}{isDueToday && <><IconBell size={11} className="inline mr-0.5" />Due Today · </>}
                         {new Date(dl.due_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                       {dl.notes && <p className="text-xs text-gray-400 mt-1">{dl.notes}</p>}
                     </div>
-                    <button onClick={() => deleteDeadline(dl.id)} className="text-gray-300 hover:text-red-400 text-sm">✕</button>
+                    <button onClick={() => deleteDeadline(dl.id)} className="text-gray-300 hover:text-red-400"><IconX size={14} /></button>
                   </div>
                 )
               })}
@@ -910,7 +911,7 @@ export default function CaseDetail() {
       {portalModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setPortalModalOpen(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">🔗 Client Portal Link</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2"><IconLink size={16} /> Client Portal Link</h2>
             <p className="text-sm text-gray-500 mb-4">Share this link with your client. They can view the case status, timeline, and download their documents.</p>
             {portalLink ? (
               <>
@@ -918,7 +919,7 @@ export default function CaseDetail() {
                 <div className="flex gap-2">
                   <button onClick={() => { navigator.clipboard.writeText(portalLink); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
                     className="flex-1 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
-                    {copied ? '✓ Copied!' : 'Copy Link'}
+                    {copied ? <><IconCheck size={13} className="inline mr-1" />Copied!</> : 'Copy Link'}
                   </button>
                   <button onClick={() => setPortalModalOpen(false)} className="px-4 py-2 border rounded text-sm text-gray-600 hover:bg-gray-50">Close</button>
                 </div>
@@ -945,13 +946,13 @@ export default function CaseDetail() {
                 <button onClick={() => downloadDocument(previewDoc)} className="text-sm text-blue-700 hover:text-blue-900 font-medium border border-blue-200 rounded-lg px-3 py-1.5">
                   Download
                 </button>
-                <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 text-xl leading-none px-2">✕</button>
+                <button onClick={closePreview} className="text-gray-400 hover:text-gray-700 px-2"><IconX size={18} /></button>
               </div>
             </div>
             <div className="flex-1 overflow-auto bg-gray-50 flex items-center justify-center p-4">
               {previewLoading ? (
                 <div className="text-center text-gray-400">
-                  <p className="text-4xl mb-3">⏳</p>
+                  <div className="flex justify-center mb-3"><IconClock size={36} className="text-gray-300" /></div>
                   <p className="text-sm">Loading preview...</p>
                 </div>
               ) : previewUrl && isImage(previewDoc) ? (
@@ -960,7 +961,7 @@ export default function CaseDetail() {
                 <iframe src={previewUrl} className="w-full h-full min-h-[60vh] rounded-lg" title={previewDoc.file_name} />
               ) : (
                 <div className="text-center text-gray-400">
-                  <p className="text-4xl mb-3">📄</p>
+                  <div className="flex justify-center mb-3"><IconFile size={36} className="text-gray-300" /></div>
                   <p className="text-sm">Preview not available.</p>
                   <button onClick={() => downloadDocument(previewDoc)} className="mt-3 text-blue-700 hover:underline text-sm">Download instead</button>
                 </div>
