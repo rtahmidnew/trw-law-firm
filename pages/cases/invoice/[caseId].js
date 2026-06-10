@@ -213,6 +213,15 @@ export default function InvoicePage() {
               body { margin: 0; }
               .print-page { box-shadow: none !important; margin: 0 !important; border-radius: 0 !important; }
             }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            @media (max-width: 600px) {
+              .inv-header { flex-direction: column !important; }
+              .inv-header-right { min-width: unset !important; text-align: left !important; align-items: flex-start !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.12) !important; }
+              .inv-bill-grid { grid-template-columns: 1fr !important; }
+              .inv-pay-grid { flex-direction: column !important; }
+              .inv-footer-grid { grid-template-columns: 1fr !important; }
+              .inv-footer-top { flex-direction: column !important; gap: 16px !important; }
+            }
           `}</style>
         </Head>
         <div className="no-print bg-gray-100 p-4 flex gap-3 items-center sticky top-0 z-10 shadow">
@@ -233,14 +242,13 @@ export default function InvoicePage() {
 
           {/* ── HEADER BAND ── */}
           <div style={{ background: TRW_DARK, color: 'white', padding: '0' }}>
-            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+            <div className="inv-header" style={{ display: 'flex', alignItems: 'stretch' }}>
               {/* Left: Logo + Firm details */}
               <div style={{ flex: 1, padding: '28px 32px 24px' }}>
-                {/* TRW Logo — same asset used in the app navbar */}
                 <img
-                  src="/trw-logo.webp"
+                  src="/trw-logo-invoice.png"
                   alt="TRW Law Firm"
-                  style={{ height: 48, marginBottom: 12, filter: 'brightness(0) invert(1)' }}
+                  style={{ height: 48, marginBottom: 12 }}
                 />
                 <div style={{ fontSize: 11, lineHeight: 1.8, opacity: 0.9 }}>
                   <strong style={{ fontSize: 12 }}>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
@@ -252,7 +260,7 @@ export default function InvoicePage() {
                 </div>
               </div>
               {/* Right: INVOICE label — slightly lighter panel */}
-              <div style={{ background: 'rgba(255,255,255,0.07)', borderLeft: '1px solid rgba(255,255,255,0.12)', padding: '28px 32px 24px', minWidth: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
+              <div className="inv-header-right" style={{ background: 'rgba(255,255,255,0.07)', borderLeft: '1px solid rgba(255,255,255,0.12)', padding: '28px 32px 24px', minWidth: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
                 <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: 4, textAlign: 'right', color: 'white' }}>INVOICE</div>
                 <div style={{ marginTop: 10, textAlign: 'right' }}>
                   <div style={{ fontSize: 11, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Invoice Details</div>
@@ -326,7 +334,7 @@ export default function InvoicePage() {
             {/* Payment schedule */}
             <div style={{ marginTop: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 700 }}>Payment Schedule</div>
-              <div style={{ display: 'flex', gap: 12 }}>
+              <div className="inv-pay-grid" style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
                   <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
                   <span style={{ color: '#475569' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -386,13 +394,13 @@ export default function InvoicePage() {
           {/* ── FOOTER — Spaceship-style light grey ── */}
           <div style={{ background: '#f4f5f7', borderTop: '1px solid #e2e8f0', padding: '22px 32px' }}>
             {/* Top row: logo + contact + address */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 40, marginBottom: 14 }}>
+            <div className="inv-footer-top" style={{ display: 'flex', alignItems: 'flex-start', gap: 40, marginBottom: 14 }}>
               {/* Logo — dark (no invert, natural dark logo on light bg) */}
               <div style={{ flexShrink: 0 }}>
                 <img src="/trw-logo.webp" alt="TRW" style={{ height: 34 }} />
               </div>
               {/* Contact columns */}
-              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.8 }}>
+              <div className="inv-footer-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.8 }}>
                 {/* Col 1: Emails + Website */}
                 <div>
                   <div style={{ fontWeight: 700, color: '#111827', marginBottom: 4, fontSize: 10 }}>Contact</div>

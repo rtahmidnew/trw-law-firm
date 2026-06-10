@@ -83,11 +83,20 @@ export default function PublicInvoiceView() {
       <Head>
         <title>Invoice {inv.invoice_number} — TRW Law Firm</title>
         <meta name="robots" content="noindex, nofollow" />
-        <style>{`
+          <style>{`
           @media print {
             .no-print { display: none !important; }
             body { margin: 0; }
             .print-page { box-shadow: none !important; margin: 0 !important; }
+          }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+          @media (max-width: 600px) {
+            .inv-header { flex-direction: column !important; }
+            .inv-header-right { min-width: unset !important; text-align: left !important; align-items: flex-start !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.12) !important; }
+            .inv-bill-grid { grid-template-columns: 1fr !important; }
+            .inv-pay-grid { grid-template-columns: 1fr !important; }
+            .inv-footer-grid { grid-template-columns: 1fr !important; }
+            .inv-footer-top { flex-direction: column !important; gap: 16px !important; }
           }
         `}</style>
       </Head>
@@ -114,9 +123,9 @@ export default function PublicInvoiceView() {
         <div className="print-page" style={{ background: '#fff', maxWidth: 860, margin: '0 auto', boxShadow: '0 4px 24px rgba(0,0,0,0.10)', fontFamily: 'Arial, sans-serif' }}>
 
           {/* ── HEADER ── */}
-          <div style={{ display: 'flex', alignItems: 'stretch' }}>
+          <div className="inv-header" style={{ display: 'flex', alignItems: 'stretch' }}>
             <div style={{ background: TRW_DARK, flex: 1, padding: '28px 32px', color: '#fff' }}>
-              <img src="/trw-logo.webp" alt="TRW" style={{ height: 36, marginBottom: 10, filter: 'brightness(0) invert(1)' }} onError={e => { e.target.style.display='none'; }} />
+              <img src="/trw-logo-invoice.png" alt="TRW" style={{ height: 36, marginBottom: 10 }} onError={e => { e.target.style.display='none'; }} />
               <div style={{ fontSize: 9, letterSpacing: 2, color: 'rgba(255,255,255,0.55)', marginBottom: 10, textTransform: 'uppercase' }}>Tahmidur Remura Wahid</div>
               <div style={{ fontSize: 11, lineHeight: 1.7, color: 'rgba(255,255,255,0.85)' }}>
                 <strong style={{ color: '#fff', fontSize: 12 }}>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
@@ -127,7 +136,7 @@ export default function PublicInvoiceView() {
                 Web: trwbd.com
               </div>
             </div>
-            <div style={{ background: 'rgba(13,27,42,0.85)', minWidth: 200, padding: '28px 28px', color: '#fff', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="inv-header-right" style={{ background: 'rgba(13,27,42,0.85)', minWidth: 200, padding: '28px 28px', color: '#fff', textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 2, marginBottom: 14, textTransform: 'uppercase' }}>INVOICE</div>
               <div style={{ fontSize: 11, lineHeight: 2, color: 'rgba(255,255,255,0.85)' }}>
                 No: <strong style={{ color: '#fff' }}>{inv.invoice_number}</strong><br />
@@ -138,7 +147,7 @@ export default function PublicInvoiceView() {
           </div>
 
           {/* ── BILL TO ── */}
-          <div style={{ padding: '20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+          <div className="inv-bill-grid" style={{ padding: '20px 32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
             <div style={{ background: '#f8fafc', borderRadius: 6, padding: '14px 16px' }}>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#6b7280', marginBottom: 6 }}>Bill To</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{inv.to_name}</div>
@@ -194,7 +203,7 @@ export default function PublicInvoiceView() {
           </div>
 
           {/* ── PAYMENT SCHEDULE ── */}
-          <div style={{ padding: '0 32px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="inv-pay-grid" style={{ padding: '0 32px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ background: '#f8fafc', borderRadius: 6, padding: '12px 16px', textAlign: 'center' }}>
               <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#6b7280', marginBottom: 4 }}>Retainer ({retainerPct}%)</div>
               <div style={{ fontSize: 16, fontWeight: 800, color: TRW_DARK }}>{sym}{retainerAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
@@ -245,11 +254,11 @@ export default function PublicInvoiceView() {
 
           {/* ── FOOTER ── */}
           <div style={{ background: '#f4f5f7', borderTop: '1px solid #e2e8f0', padding: '18px 32px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, marginBottom: 12 }}>
+            <div className="inv-footer-top" style={{ display: 'flex', alignItems: 'flex-start', gap: 32, marginBottom: 12 }}>
               <div style={{ flexShrink: 0 }}>
                 <img src="/trw-logo.webp" alt="TRW" style={{ height: 30 }} />
               </div>
-              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.8 }}>
+              <div className="inv-footer-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.8 }}>
                 <div>
                   <div style={{ fontWeight: 700, color: '#111827', marginBottom: 4, fontSize: 10 }}>Contact</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{iconMail} info@trfirm.com</div>
