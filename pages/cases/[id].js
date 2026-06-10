@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
-import { IconGlobe, IconLock, IconInvoice, IconMail, IconLink, IconEdit, IconClipboard, IconFile, IconFileText, IconSearch, IconX, IconList, IconGrid, IconCheck, IconTrash, IconAlertTriangle, IconBell, IconCalendar, IconEye, IconDownload, IconPaperclip, IconClock } from '../../components/Icons'
+import { IconGlobe, IconLock, IconInvoice, IconMail, IconLink, IconEdit, IconClipboard, IconFile, IconFileText, IconSearch, IconX, IconList, IconGrid, IconCheck, IconTrash, IconAlertTriangle, IconBell, IconCalendar, IconEye, IconDownload, IconPaperclip, IconClock, IconStar } from '../../components/Icons'
 
 const TABS = ['Timeline', 'Documents', 'Deadlines']
 
@@ -57,6 +57,9 @@ export default function CaseDetail() {
 
   // Visibility update
   const [updatingVisibility, setUpdatingVisibility] = useState(false)
+
+  // Star toggle
+  const [toggingStar, setToggingStar] = useState(false)
 
   // Client Portal
   const [portalModalOpen, setPortalModalOpen] = useState(false)
@@ -322,6 +325,21 @@ export default function CaseDetail() {
     setUpdatingStatus(false)
   }
 
+  // ── Star Toggle ───────────────────────────────────────────
+  async function toggleStar() {
+    if (toggingStar) return
+    setToggingStar(true)
+    const newVal = !caseData.is_starred
+    const { data } = await supabase
+      .from('cases')
+      .update({ is_starred: newVal })
+      .eq('id', id)
+      .select()
+      .single()
+    setCaseData(data)
+    setToggingStar(false)
+  }
+
   // ── Visibility Update ─────────────────────────────────────
   async function toggleVisibility() {
     setUpdatingVisibility(true)
@@ -448,12 +466,27 @@ export default function CaseDetail() {
             {/* Right controls */}
             <div className="flex flex-col gap-3">
               {/* Edit button */}
-              <button
-                onClick={startEdit}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-700 transition-all"
-              >
-                <IconEdit size={12} /> Edit Case Details
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={startEdit}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-700 transition-all"
+                >
+                  <IconEdit size={12} /> Edit Case Details
+                </button>
+                <button
+                  onClick={toggleStar}
+                  disabled={toggingStar}
+                  title={caseData.is_starred ? 'Remove from starred' : 'Star this case'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                    caseData.is_starred
+                      ? 'border-yellow-400 bg-yellow-50 text-yellow-600 hover:bg-yellow-100'
+                      : 'border-gray-300 text-gray-400 hover:border-yellow-400 hover:text-yellow-500'
+                  }`}
+                >
+                  <IconStar size={12} filled={caseData.is_starred} />
+                  {caseData.is_starred ? 'Starred' : 'Star'}
+                </button>
+              </div>
               {/* Feature buttons */}
               <div className="flex flex-col gap-1.5">
                 {isPartner && (

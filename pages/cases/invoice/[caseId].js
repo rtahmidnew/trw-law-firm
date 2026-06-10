@@ -4,6 +4,11 @@ import { supabase } from '../../../lib/supabase';
 import Head from 'next/head';
 import Link from 'next/link';
 
+// TRW brand blue — matches trw.ac
+const TRW_BLUE = '#1d4ed8';
+const TRW_BLUE_DARK = '#1e3a8a';
+const TRW_BLUE_LIGHT = '#eff6ff';
+
 export default function InvoicePage() {
   const router = useRouter();
   const { caseId } = router.query;
@@ -160,7 +165,9 @@ export default function InvoicePage() {
     </div>
   );
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // PRINT / PREVIEW VIEW
+  // ─────────────────────────────────────────────────────────────────────────────
   if (view === 'preview' && selectedInvoice) {
     const inv = selectedInvoice;
     const items = inv.line_items || [];
@@ -184,139 +191,160 @@ export default function InvoicePage() {
         </Head>
         <div className="no-print bg-gray-100 p-4 flex gap-3 items-center sticky top-0 z-10 shadow">
           <button onClick={() => setView('list')} className="text-sm text-gray-600 hover:text-gray-900">← Back</button>
-          <button onClick={() => window.print()} className="ml-auto bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">Print / Save PDF</button>
+          <button onClick={() => window.print()} className="ml-auto bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-800">Print / Save PDF</button>
           <button onClick={() => { openInvoice(inv); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-300">Edit</button>
         </div>
 
         <div ref={printRef} className="print-page bg-white max-w-4xl mx-auto my-6 shadow-lg" style={{ fontFamily: 'Arial, sans-serif' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '3px solid #1a3a2a' }}>
-            <div style={{ flex: 1, padding: '28px 32px 20px' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#1a3a2a', letterSpacing: 2 }}>TRW</div>
-              <div style={{ fontSize: 10, color: '#666', letterSpacing: 1, marginBottom: 8 }}>TAHMIDUR REMURA WAHID</div>
-              <div style={{ fontSize: 11, color: '#444', lineHeight: 1.5 }}>
-                TRW Law Firm · Dhaka, Bangladesh<br />
-                info@trfirm.com · www.trw.ac
+
+          {/* ── HEADER BAND ── */}
+          <div style={{ background: TRW_BLUE_DARK, color: 'white', padding: '0' }}>
+            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+              {/* Left: Firm details */}
+              <div style={{ flex: 1, padding: '28px 32px 24px' }}>
+                <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 4, marginBottom: 2 }}>TRW</div>
+                <div style={{ fontSize: 10, letterSpacing: 2, opacity: 0.8, marginBottom: 10 }}>TAHMIDUR REMURA WAHID</div>
+                <div style={{ fontSize: 11, lineHeight: 1.7, opacity: 0.9 }}>
+                  <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
+                  House 410, Road 29, Mohakhali DOHS<br />
+                  Dhaka 1206, Bangladesh<br />
+                  Tel: +880 1711-985987<br />
+                  Email: info@trfirm.com<br />
+                  Web: www.trw.ac
+                </div>
+              </div>
+              {/* Right: INVOICE label */}
+              <div style={{ background: TRW_BLUE, padding: '28px 32px 24px', minWidth: 180, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 3, textAlign: 'right' }}>INVOICE</div>
+                  <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 4 }}>
+                    No: <strong>{inv.invoice_number}</strong>
+                  </div>
+                  <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 2 }}>
+                    Date: <strong>{new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                  </div>
+                  {inv.matter_reference && (
+                    <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 2 }}>
+                      Ref: <strong>{inv.matter_reference}</strong>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div style={{ width: 8, background: '#1a3a2a' }}></div>
           </div>
 
           <div style={{ padding: '24px 32px' }}>
-            {/* Invoice title + meta */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div>
-                <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a3a2a', margin: 0 }}>INVOICE</h1>
-                <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>Invoice No: <strong>{inv.invoice_number}</strong></div>
-              </div>
-              <div style={{ textAlign: 'right', fontSize: 12, color: '#444' }}>
-                <div>Date: <strong>{new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></div>
-                {inv.matter_reference && <div style={{ marginTop: 4 }}>Matter Ref: <strong>{inv.matter_reference}</strong></div>}
-              </div>
-            </div>
 
-            {/* To / Attention */}
-            <div style={{ background: '#f9f9f7', border: '1px solid #e0e0d8', borderRadius: 6, padding: '14px 18px', marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Bill To</div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{inv.to_name}</div>
+            {/* Bill To */}
+            <div style={{ background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '14px 18px', marginBottom: 20 }}>
+              <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>Bill To</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{inv.to_name}</div>
               {inv.attention && inv.attention !== inv.to_name && (
-                <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>Attn: {inv.attention}</div>
+                <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Attn: {inv.attention}</div>
               )}
             </div>
 
             {inv.project_description && (
               <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Re: Matter / Project</div>
-                <div style={{ fontSize: 13, color: '#333' }}>{inv.project_description}</div>
+                <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, fontWeight: 700 }}>Re: Matter / Project</div>
+                <div style={{ fontSize: 13, color: '#334155' }}>{inv.project_description}</div>
               </div>
             )}
 
             {/* Line items table */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 0, fontSize: 12 }}>
               <thead>
-                <tr style={{ background: '#1a3a2a', color: 'white' }}>
-                  <th style={{ padding: '8px 10px', textAlign: 'left', width: 40 }}>SL</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'left' }}>Description of Services</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 120 }}>Govt. Cost ({sym})</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 140 }}>Professional Fee ({sym})</th>
+                <tr style={{ background: TRW_BLUE_DARK, color: 'white' }}>
+                  <th style={{ padding: '9px 10px', textAlign: 'left', width: 40 }}>SL</th>
+                  <th style={{ padding: '9px 10px', textAlign: 'left' }}>Description of Services</th>
+                  <th style={{ padding: '9px 10px', textAlign: 'right', width: 120 }}>Govt. Cost ({sym})</th>
+                  <th style={{ padding: '9px 10px', textAlign: 'right', width: 140 }}>Professional Fee ({sym})</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9f9f7', borderBottom: '1px solid #e8e8e0' }}>
-                    <td style={{ padding: '8px 10px', color: '#666' }}>{item.sl}</td>
-                    <td style={{ padding: '8px 10px' }}>{item.description}</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>{item.govt_cost ? `${sym}${parseFloat(item.govt_cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>{item.professional_fee ? `${sym}${parseFloat(item.professional_fee).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
+                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '8px 10px', color: '#94a3b8' }}>{item.sl}</td>
+                    <td style={{ padding: '8px 10px', color: '#1e293b' }}>{item.description}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569' }}>{item.govt_cost ? `${sym}${parseFloat(item.govt_cost).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: '#475569' }}>{item.professional_fee ? `${sym}${parseFloat(item.professional_fee).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ borderTop: '2px solid #1a3a2a' }}>
+                <tr style={{ borderTop: `2px solid ${TRW_BLUE}` }}>
                   <td colSpan={2}></td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>Subtotal</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>{sym}{subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#334155' }}>Subtotal</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: '#334155' }}>{sym}{subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
-                <tr style={{ background: '#f5f5f0' }}>
+                <tr style={{ background: '#f1f5f9' }}>
                   <td colSpan={2}></td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#666' }}>AIT @ {inv.ait_percentage}%</td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#666' }}>{sym}{ait.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>AIT @ {inv.ait_percentage}%</td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>{sym}{ait.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
-                <tr style={{ background: '#1a3a2a', color: 'white' }}>
+                <tr style={{ background: TRW_BLUE_DARK, color: 'white' }}>
                   <td colSpan={2}></td>
-                  <td style={{ padding: '10px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>GRAND TOTAL</td>
-                  <td style={{ padding: '10px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>{sym}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '11px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>GRAND TOTAL</td>
+                  <td style={{ padding: '11px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>{sym}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
               </tfoot>
             </table>
 
             {/* Payment schedule */}
             <div style={{ marginTop: 20, marginBottom: 20 }}>
-              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Payment Schedule</div>
+              <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 700 }}>Payment Schedule</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1, background: '#f0f7f0', border: '1px solid #c8e0c8', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
-                  <span style={{ color: '#555' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <div style={{ flex: 1, background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
+                  <strong style={{ color: TRW_BLUE_DARK }}>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
+                  <span style={{ color: '#475569' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div style={{ flex: 1, background: '#f0f7f0', border: '1px solid #c8e0c8', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong>{inv.payment_schedule?.delivery || 50}% Upon Delivery</strong><br />
-                  <span style={{ color: '#555' }}>Due upon completion: {sym}{(total * ((inv.payment_schedule?.delivery || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <div style={{ flex: 1, background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
+                  <strong style={{ color: TRW_BLUE_DARK }}>{inv.payment_schedule?.delivery || 50}% Upon Delivery</strong><br />
+                  <span style={{ color: '#475569' }}>Due upon completion: {sym}{(total * ((inv.payment_schedule?.delivery || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>
 
             {/* Payment instructions */}
-            <div style={{ background: '#f9f9f7', border: '1px solid #e0e0d8', borderRadius: 6, padding: '14px 18px', marginBottom: 20, fontSize: 11 }}>
-              <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Payment Instructions</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <strong style={{ color: '#1a3a2a' }}>Bank Transfer (Bangladesh)</strong><br />
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '16px 18px', marginBottom: 20, fontSize: 11 }}>
+              <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, fontWeight: 700 }}>Payment Instructions</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ lineHeight: 1.7 }}>
+                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>Bank Transfer (Bangladesh)</strong><br />
                   Account Name: Tahmidur Rahman<br />
                   Bank: Dutch-Bangla Bank Ltd<br />
                   Account No: 105.110.42975<br />
                   Branch: Gulshan, Dhaka<br />
                   Routing No: 090261502
                 </div>
-                <div>
-                  <strong style={{ color: '#1a3a2a' }}>International Transfer</strong><br />
+                <div style={{ lineHeight: 1.7 }}>
+                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>International Transfer</strong><br />
                   MoneyGram / Western Union<br />
                   Receiver: Tahmidur Rahman<br />
-                  Country: Bangladesh<br /><br />
-                  <strong style={{ color: '#1a3a2a' }}>Mobile Banking</strong><br />
-                  bKash: 01711-XXXXXX
+                  Country: Bangladesh<br />
+                  <br />
+                  <strong style={{ color: TRW_BLUE_DARK, fontSize: 11 }}>Mobile Banking (bKash)</strong><br />
+                  bKash Number: <strong style={{ color: '#1e293b' }}>01711-985987</strong><br />
+                  Account Type: Personal
                 </div>
               </div>
             </div>
 
             {inv.notes && (
-              <div style={{ marginBottom: 16, fontSize: 11, color: '#555', fontStyle: 'italic' }}>
+              <div style={{ marginBottom: 16, fontSize: 11, color: '#475569', fontStyle: 'italic', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '8px 12px' }}>
                 <strong>Notes:</strong> {inv.notes}
               </div>
             )}
 
-            <div style={{ borderTop: '2px solid #1a3a2a', paddingTop: 12, textAlign: 'center', fontSize: 10, color: '#888' }}>
-              Tahmidur Remura Wahid — TRW Law Firm | info@trfirm.com | www.trw.ac<br />
-              This invoice is generated by TRW Case Management System
+            {/* Footer */}
+            <div style={{ borderTop: `2px solid ${TRW_BLUE}`, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                This invoice is generated by TRW Case Management System
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 10, color: '#64748b' }}>
+                <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
+                info@trfirm.com · www.trw.ac · +880 1711-985987
+              </div>
             </div>
           </div>
         </div>
@@ -324,7 +352,9 @@ export default function InvoicePage() {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // CREATE / EDIT VIEW
+  // ─────────────────────────────────────────────────────────────────────────────
   if (view === 'create') {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -336,7 +366,7 @@ export default function InvoicePage() {
             <button onClick={() => saveInvoice('draft')} disabled={saving} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50">
               {saving ? 'Saving...' : 'Save Draft'}
             </button>
-            <button onClick={() => saveInvoice('final')} disabled={saving} className="px-4 py-2 text-sm bg-green-700 text-white rounded hover:bg-green-800 disabled:opacity-50">
+            <button onClick={() => saveInvoice('final')} disabled={saving} className="px-4 py-2 text-sm bg-blue-700 text-white rounded hover:bg-blue-800 disabled:opacity-50">
               {saving ? 'Saving...' : 'Finalise & Preview'}
             </button>
           </div>
@@ -465,14 +495,16 @@ export default function InvoicePage() {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
   // LIST VIEW
+  // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       <Head><title>Invoices — {caseData?.client_name} — TRW</title></Head>
       <div className="bg-white border-b px-6 py-4 flex items-center gap-4 shadow-sm">
         <Link href={`/cases/${caseId}`} className="text-sm text-gray-500 hover:text-gray-800">← Back to Case</Link>
         <h1 className="text-lg font-semibold text-gray-800">Invoices — {caseData?.client_name}</h1>
-        <button onClick={() => { setSelectedInvoice(null); setView('create'); }} className="ml-auto bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800">
+        <button onClick={() => { setSelectedInvoice(null); setView('create'); }} className="ml-auto bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-800">
           + New Invoice
         </button>
       </div>
@@ -482,7 +514,7 @@ export default function InvoicePage() {
           <div className="bg-white rounded-lg border p-12 text-center">
             <div className="text-4xl mb-3 text-gray-300" style={{fontSize:36}}>&#9632;</div>
             <p className="text-gray-500 mb-4">No invoices yet for this case.</p>
-            <button onClick={() => { setSelectedInvoice(null); setView('create'); }} className="bg-green-700 text-white px-5 py-2 rounded text-sm font-medium hover:bg-green-800">
+            <button onClick={() => { setSelectedInvoice(null); setView('create'); }} className="bg-blue-700 text-white px-5 py-2 rounded text-sm font-medium hover:bg-blue-800">
               Create First Invoice
             </button>
           </div>
@@ -496,14 +528,14 @@ export default function InvoicePage() {
               const sym = inv.currency === 'USD' ? '$' : inv.currency === 'BDT' ? '৳' : inv.currency === 'EUR' ? '€' : inv.currency === 'GBP' ? '£' : inv.currency === 'SGD' ? 'S$' : inv.currency;
               return (
                 <div key={inv.id} className="bg-white rounded-lg border p-4 flex items-center gap-4">
-                  <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-bold text-gray-500">INV</div>
+                  <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center text-xs font-bold text-blue-700">INV</div>
                   <div className="flex-1">
                     <div className="font-medium text-gray-800">{inv.invoice_number}</div>
                     <div className="text-sm text-gray-500">{inv.to_name} · {new Date(inv.invoice_date).toLocaleDateString('en-GB')}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold text-gray-800">{sym}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${inv.status === 'final' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${inv.status === 'final' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {inv.status === 'final' ? 'Final' : 'Draft'}
                     </span>
                   </div>
