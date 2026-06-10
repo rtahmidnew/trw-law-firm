@@ -152,6 +152,31 @@ export default function InvoicePage() {
     await fetchData();
   }
 
+  const [copyMsg, setCopyMsg] = useState('');
+
+  async function copyPublicLink(inv) {
+    let token = inv.public_token;
+    // If no token yet, generate one and save it
+    if (!token) {
+      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const { data: updated } = await supabase
+        .from('invoices')
+        .update({ public_token: token })
+        .eq('id', inv.id)
+        .select()
+        .single();
+      if (updated) {
+        setSelectedInvoice(updated);
+        await fetchData();
+      }
+    }
+    const url = `${window.location.origin}/invoice/view/${token}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopyMsg('Link copied!');
+      setTimeout(() => setCopyMsg(''), 3000);
+    });
+  }
+
   const currencySymbol = form.currency === 'USD' ? '$' : form.currency === 'BDT' ? '৳' : form.currency === 'EUR' ? '€' : form.currency === 'GBP' ? '£' : form.currency === 'SGD' ? 'S$' : form.currency;
 
   if (loading) return (
@@ -192,7 +217,15 @@ export default function InvoicePage() {
         </Head>
         <div className="no-print bg-gray-100 p-4 flex gap-3 items-center sticky top-0 z-10 shadow">
           <button onClick={() => setView('list')} className="text-sm text-gray-600 hover:text-gray-900">← Back</button>
-          <button onClick={() => window.print()} className="ml-auto bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-800">Print / Save PDF</button>
+          <button
+            onClick={() => copyPublicLink(inv)}
+            className="ml-auto flex items-center gap-2 bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800"
+            title="Generate a public link clients can use to verify this invoice without logging in"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {copyMsg || 'Copy Client Verification Link'}
+          </button>
+          <button onClick={() => window.print()} className="bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-800">Print / Save PDF</button>
           <button onClick={() => { openInvoice(inv); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-300">Edit</button>
         </div>
 
@@ -359,36 +392,40 @@ export default function InvoicePage() {
                 <img src="/trw-logo.webp" alt="TRW" style={{ height: 34 }} />
               </div>
               {/* Contact columns */}
-              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.9 }}>
+              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, fontSize: 10, color: '#374151', lineHeight: 1.8 }}>
+                {/* Col 1: Emails + Website */}
                 <div>
-                  <div style={{ fontWeight: 700, color: '#111827', marginBottom: 3, fontSize: 10 }}>Contact</div>
-                  {/* monochrome mail icon */}
+                  <div style={{ fontWeight: 700, color: '#111827', marginBottom: 4, fontSize: 10 }}>Contact</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     info@trfirm.com
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     info@trwbd.com
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     info@tahmidur.com
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                     trwbd.com
                   </div>
+                </div>
+                {/* Col 2: Phone numbers */}
+                <div>
+                  <div style={{ fontWeight: 700, color: '#111827', marginBottom: 4, fontSize: 10 }}>Phone</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
                     +8801708-000660
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
                     +8801847220062
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5 19.79 19.79 0 0 1 1.6 4.9 2 2 0 0 1 3.57 2.72h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.4a16 16 0 0 0 6 6l.86-.86a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.5 17.8z"/></svg>
                     +8801708080817
                   </div>
                 </div>
@@ -605,6 +642,13 @@ export default function InvoicePage() {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => { setSelectedInvoice(inv); setView('preview'); }} className="text-sm px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100">Preview</button>
+                    <button
+                      onClick={() => copyPublicLink(inv)}
+                      className="text-sm px-3 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100"
+                      title="Copy client verification link"
+                    >
+                      🔗 Link
+                    </button>
                     <button onClick={() => openInvoice(inv)} className="text-sm px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Edit</button>
                     <button onClick={() => deleteInvoice(inv.id)} className="text-sm px-3 py-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100">Delete</button>
                   </div>
