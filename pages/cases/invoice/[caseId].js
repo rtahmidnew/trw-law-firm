@@ -4,10 +4,11 @@ import { supabase } from '../../../lib/supabase';
 import Head from 'next/head';
 import Link from 'next/link';
 
-// TRW brand blue — matches trw.ac
-const TRW_BLUE = '#1d4ed8';
-const TRW_BLUE_DARK = '#1e3a8a';
-const TRW_BLUE_LIGHT = '#eff6ff';
+// TRW brand colours
+const TRW_DARK = 'rgb(13, 27, 42)';   // exact dark from the app
+const TRW_BLUE = '#1d4ed8';            // accent blue for highlights
+const TRW_BLUE_DARK = 'rgb(13, 27, 42)'; // alias — header uses dark
+const TRW_BLUE_LIGHT = '#f1f5f9';      // light grey tint
 
 export default function InvoicePage() {
   const router = useRouter();
@@ -198,36 +199,35 @@ export default function InvoicePage() {
         <div ref={printRef} className="print-page bg-white max-w-4xl mx-auto my-6 shadow-lg" style={{ fontFamily: 'Arial, sans-serif' }}>
 
           {/* ── HEADER BAND ── */}
-          <div style={{ background: TRW_BLUE_DARK, color: 'white', padding: '0' }}>
+          <div style={{ background: TRW_DARK, color: 'white', padding: '0' }}>
             <div style={{ display: 'flex', alignItems: 'stretch' }}>
-              {/* Left: Firm details */}
+              {/* Left: Logo + Firm details */}
               <div style={{ flex: 1, padding: '28px 32px 24px' }}>
-                <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: 4, marginBottom: 2 }}>TRW</div>
-                <div style={{ fontSize: 10, letterSpacing: 2, opacity: 0.8, marginBottom: 10 }}>TAHMIDUR REMURA WAHID</div>
-                <div style={{ fontSize: 11, lineHeight: 1.7, opacity: 0.9 }}>
-                  <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
-                  House 410, Road 29, Mohakhali DOHS<br />
+                {/* TRW Logo — same asset used in the app navbar */}
+                <img
+                  src="/trw-logo.webp"
+                  alt="TRW Law Firm"
+                  style={{ height: 48, marginBottom: 12, filter: 'brightness(0) invert(1)' }}
+                />
+                <div style={{ fontSize: 11, lineHeight: 1.8, opacity: 0.9 }}>
+                  <strong style={{ fontSize: 12 }}>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
+                  House 410, Road 29, Mohakhali New DOHS<br />
                   Dhaka 1206, Bangladesh<br />
                   Tel: +8801708-000660<br />
                   Email: info@trfirm.com<br />
-                  Web: www.trw.ac
+                  Web: trwbd.com
                 </div>
               </div>
-              {/* Right: INVOICE label */}
-              <div style={{ background: TRW_BLUE, padding: '28px 32px 24px', minWidth: 180, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 3, textAlign: 'right' }}>INVOICE</div>
-                  <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 4 }}>
-                    No: <strong>{inv.invoice_number}</strong>
+              {/* Right: INVOICE label — slightly lighter panel */}
+              <div style={{ background: 'rgba(255,255,255,0.07)', borderLeft: '1px solid rgba(255,255,255,0.12)', padding: '28px 32px 24px', minWidth: 200, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' }}>
+                <div style={{ fontSize: 30, fontWeight: 900, letterSpacing: 4, textAlign: 'right', color: 'white' }}>INVOICE</div>
+                <div style={{ marginTop: 10, textAlign: 'right' }}>
+                  <div style={{ fontSize: 11, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Invoice Details</div>
+                  <div style={{ fontSize: 12, lineHeight: 1.9 }}>
+                    <span style={{ opacity: 0.7 }}>No: </span><strong>{inv.invoice_number}</strong><br />
+                    <span style={{ opacity: 0.7 }}>Date: </span><strong>{new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                    {inv.matter_reference && (<><br /><span style={{ opacity: 0.7 }}>Ref: </span><strong>{inv.matter_reference}</strong></>)}
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 2 }}>
-                    Date: <strong>{new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-                  </div>
-                  {inv.matter_reference && (
-                    <div style={{ fontSize: 11, opacity: 0.85, textAlign: 'right', marginTop: 2 }}>
-                      Ref: <strong>{inv.matter_reference}</strong>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -236,8 +236,8 @@ export default function InvoicePage() {
           <div style={{ padding: '24px 32px' }}>
 
             {/* Bill To */}
-            <div style={{ background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '14px 18px', marginBottom: 20 }}>
-              <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>Bill To</div>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '14px 18px', marginBottom: 20 }}>
+              <div style={{ fontSize: 10, color: TRW_DARK, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>Bill To</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#1e293b' }}>{inv.to_name}</div>
               {inv.attention && inv.attention !== inv.to_name && (
                 <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Attn: {inv.attention}</div>
@@ -254,7 +254,7 @@ export default function InvoicePage() {
             {/* Line items table */}
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 0, fontSize: 12 }}>
               <thead>
-                <tr style={{ background: TRW_BLUE_DARK, color: 'white' }}>
+                <tr style={{ background: TRW_DARK, color: 'white' }}>
                   <th style={{ padding: '9px 10px', textAlign: 'left', width: 40 }}>SL</th>
                   <th style={{ padding: '9px 10px', textAlign: 'left' }}>Description of Services</th>
                   <th style={{ padding: '9px 10px', textAlign: 'right', width: 120 }}>Govt. Cost ({sym})</th>
@@ -282,7 +282,7 @@ export default function InvoicePage() {
                   <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>AIT @ {inv.ait_percentage}%</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>{sym}{ait.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
-                <tr style={{ background: TRW_BLUE_DARK, color: 'white' }}>
+                <tr style={{ background: TRW_DARK, color: 'white' }}>
                   <td colSpan={2}></td>
                   <td style={{ padding: '11px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>GRAND TOTAL</td>
                   <td style={{ padding: '11px 10px', textAlign: 'right', fontWeight: 700, fontSize: 13 }}>{sym}{total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
@@ -294,12 +294,12 @@ export default function InvoicePage() {
             <div style={{ marginTop: 20, marginBottom: 20 }}>
               <div style={{ fontSize: 10, color: TRW_BLUE, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, fontWeight: 700 }}>Payment Schedule</div>
               <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1, background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong style={{ color: TRW_BLUE_DARK }}>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
+                <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
+                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.retainer || 50}% Retainer</strong><br />
                   <span style={{ color: '#475569' }}>Due upon engagement: {sym}{(total * ((inv.payment_schedule?.retainer || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div style={{ flex: 1, background: TRW_BLUE_LIGHT, border: `1px solid #bfdbfe`, borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
-                  <strong style={{ color: TRW_BLUE_DARK }}>{inv.payment_schedule?.delivery || 50}% Upon Delivery</strong><br />
+                <div style={{ flex: 1, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 14px', fontSize: 12 }}>
+                  <strong style={{ color: TRW_DARK }}>{inv.payment_schedule?.delivery || 50}% Upon Delivery</strong><br />
                   <span style={{ color: '#475569' }}>Due upon completion: {sym}{(total * ((inv.payment_schedule?.delivery || 50) / 100)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
@@ -336,18 +336,35 @@ export default function InvoicePage() {
               </div>
             )}
 
-            {/* Footer */}
-            <div style={{ borderTop: `2px solid ${TRW_BLUE}`, paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ fontSize: 10, color: '#94a3b8' }}>
-                This invoice is generated by TRW Case Management System
+          </div>{/* end padding div */}
+
+          {/* ── FOOTER — Spaceship-style light grey ── */}
+          <div style={{ background: '#f1f5f9', borderTop: '1px solid #e2e8f0', padding: '20px 32px', display: 'flex', alignItems: 'flex-start', gap: 40 }}>
+            {/* Logo (dark version) */}
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                src="/trw-logo.webp"
+                alt="TRW"
+                style={{ height: 36 }}
+              />
+            </div>
+            {/* Contact info */}
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 10, color: '#475569', lineHeight: 1.8 }}>
+              <div>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Contact</div>
+                <div>📧 info@trfirm.com</div>
+                <div>🌐 trwbd.com</div>
+                <div>📞 +8801708-000660</div>
               </div>
-              <div style={{ textAlign: 'right', fontSize: 10, color: '#64748b' }}>
-                <strong>Tahmidur Remura Wahid — TRW Law Firm</strong><br />
-                info@trfirm.com · www.trw.ac · +8801708-000660
+              <div>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Address</div>
+                <div>House 410, Road 29</div>
+                <div>Mohakhali New DOHS</div>
+                <div>Dhaka 1206, Bangladesh</div>
               </div>
             </div>
-          </div>
-        </div>
+          </div>{/* end footer */}
+        </div>{/* end print-page */}
       </>
     );
   }

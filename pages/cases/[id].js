@@ -340,6 +340,23 @@ export default function CaseDetail() {
     setToggingStar(false)
   }
 
+  // ── Delete Case ──────────────────────────────────────────
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function deleteCase() {
+    setDeleting(true)
+    // Delete all storage files first
+    const { data: docs } = await supabase.from('documents').select('file_path').eq('case_id', id)
+    if (docs && docs.length > 0) {
+      const paths = docs.map(d => d.file_path)
+      await supabase.storage.from('case-documents').remove(paths)
+    }
+    // Delete the case (cascades to timeline_entries, documents, deadlines)
+    await supabase.from('cases').delete().eq('id', id)
+    router.push('/admin')
+  }
+
   // ── Visibility Update ─────────────────────────────────────
   async function toggleVisibility() {
     setUpdatingVisibility(true)
@@ -549,6 +566,17 @@ export default function CaseDetail() {
                   <p className="text-xs text-gray-400 mt-1">
                     {updatingVisibility ? 'Updating...' : (caseData.is_public !== false ? 'All members can view.' : 'Only you & partners.')}
                   </p>
+                </div>
+              )}
+              {/* Delete Case — partner only */}
+              {isPartner && (
+                <div className="pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-400 transition-all w-full justify-center"
+                  >
+                    <IconTrash size={12} /> Delete Case
+                  </button>
                 </div>
               )}
             </div>
@@ -999,6 +1027,44 @@ export default function CaseDetail() {
                   <button onClick={() => downloadDocument(previewDoc)} className="mt-3 text-blue-700 hover:underline text-sm">Download instead</button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Case Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <IconAlertTriangle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Case?</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="bg-red-50 border border-red-100 rounded-lg p-3 mb-5">
+              <p className="text-sm text-red-700">
+                You are about to permanently delete <strong>{caseData.client_name}</strong> ({caseData.file_number}). All timeline entries, documents, and deadlines will be deleted.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteCase}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-all disabled:opacity-60"
+              >
+                {deleting ? 'Deleting...' : 'Yes, Delete Case'}
+              </button>
             </div>
           </div>
         </div>
