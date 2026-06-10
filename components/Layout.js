@@ -78,7 +78,17 @@ export default function Layout({ children }) {
                   <>
                     <Link href="/dashboard">
                       <span className={`cursor-pointer transition-colors ${router.pathname === '/dashboard' ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
+                        Dashboard
+                      </span>
+                    </Link>
+                    <Link href="/cases?assigned=me">
+                      <span className={`cursor-pointer transition-colors ${router.pathname === '/cases' && router.query.assigned === 'me' ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
                         My Cases
+                      </span>
+                    </Link>
+                    <Link href="/cases">
+                      <span className={`cursor-pointer transition-colors ${router.pathname === '/cases' && !router.query.assigned ? 'text-white font-semibold' : 'text-gray-300 hover:text-white'}`}>
+                        All Cases
                       </span>
                     </Link>
                     <Link href="/instructions">

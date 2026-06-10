@@ -188,10 +188,10 @@ export default function Dashboard() {
     : []
 
   const stats = [
-    { label: 'My Cases', value: myCases.length, color: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200' },
-    { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800 hover:bg-green-100 border-green-200' },
-    { label: 'Pending', value: pendingCases.length, color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200' },
-    { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300' },
+    { label: 'My Cases', value: myCases.length, color: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200', href: '/cases?assigned=me' },
+    { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800 hover:bg-green-100 border-green-200', href: '/cases?assigned=me&status=open' },
+    { label: 'Pending', value: pendingCases.length, color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200', href: '/cases?assigned=me' },
+    { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300', href: '/cases?assigned=me&status=closed' },
   ]
 
   function CaseCard({ c }) {
@@ -296,10 +296,12 @@ export default function Dashboard() {
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             {stats.map(s => (
-              <div key={s.label} className={`rounded-xl p-4 border ${s.color}`}>
-                <p className="text-2xl font-bold">{s.value}</p>
-                <p className="text-xs font-medium mt-0.5">{s.label}</p>
-              </div>
+              <Link key={s.label} href={s.href}>
+                <div className={`rounded-xl p-4 border cursor-pointer transition-all ${s.color}`}>
+                  <p className="text-2xl font-bold">{s.value}</p>
+                  <p className="text-xs font-medium mt-0.5">{s.label}</p>
+                </div>
+              </Link>
             ))}
           </div>
 
@@ -332,6 +334,11 @@ export default function Dashboard() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-base font-semibold text-gray-800">Recent Cases</h2>
+                  <Link href="/cases">
+                    <span className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
+                      View All →
+                    </span>
+                  </Link>
                 </div>
                 {recentCases.length === 0 ? (
                   <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
