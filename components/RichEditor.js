@@ -5,10 +5,14 @@ import TextStyle from '@tiptap/extension-text-style'
 import Color from '@tiptap/extension-color'
 import Highlight from '@tiptap/extension-highlight'
 import TextAlign from '@tiptap/extension-text-align'
-import { useEffect } from 'react'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+import { useEffect, useState } from 'react'
 
 // ─── Toolbar button ───────────────────────────────────────────────────────────
-function Btn({ active, disabled, onClick, title, children }) {
+function Btn({ active, disabled, onClick, title, children, danger }) {
   return (
     <button
       type="button"
@@ -17,12 +21,14 @@ function Btn({ active, disabled, onClick, title, children }) {
       title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 28, height: 28, borderRadius: 5, border: 'none', cursor: disabled ? 'default' : 'pointer',
-        background: active ? '#0d1b2a' : 'transparent',
-        color: active ? '#fff' : '#374151',
+        width: 28, height: 28, borderRadius: 5, border: 'none',
+        cursor: disabled ? 'default' : 'pointer',
+        background: active ? '#0d1b2a' : danger ? '#fef2f2' : 'transparent',
+        color: active ? '#fff' : danger ? '#dc2626' : '#374151',
         fontSize: 13, fontWeight: 600,
         transition: 'background 0.1s, color 0.1s',
         flexShrink: 0,
+        opacity: disabled ? 0.35 : 1,
       }}
     >
       {children}
@@ -73,9 +79,74 @@ const IconQuote = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="cu
 const IconCode = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
 const IconUndo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
 const IconRedo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg>
+// Table icons
+const IconTable = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 2v3H5V5h15zm-8 5h8v3h-8v-3zm0 5h8v4h-8v-4zM5 10h5v3H5v-3zm0 5h5v4H5v-4z"/></svg>
+const IconColBefore = () => <span style={{ fontSize: 10, fontWeight: 700 }}>+←</span>
+const IconColAfter = () => <span style={{ fontSize: 10, fontWeight: 700 }}>+→</span>
+const IconRowBefore = () => <span style={{ fontSize: 10, fontWeight: 700 }}>+↑</span>
+const IconRowAfter = () => <span style={{ fontSize: 10, fontWeight: 700 }}>+↓</span>
+const IconDelCol = () => <span style={{ fontSize: 10, fontWeight: 700 }}>−col</span>
+const IconDelRow = () => <span style={{ fontSize: 10, fontWeight: 700 }}>−row</span>
+const IconDelTable = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.46 15.88L14 14.41l-2 2-2-2-1.41 1.41 2 2-2 2L9.99 21l2-2 2 2 1.41-1.41-2-2 2.06-2.12zM20 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h4.17c-.11-.32-.17-.66-.17-1s.06-.68.17-1H5v-4h6.09c.34-1.15 1-2.16 1.91-2.92V13H5v-3h15v1.08c.71.07 1.39.28 2 .6V5c0-1.1-.9-2-2-2zm0 7H5V5h15v5z"/></svg>
+const IconMergeCells = () => <span style={{ fontSize: 10, fontWeight: 700 }}>merge</span>
+const IconSplitCell = () => <span style={{ fontSize: 10, fontWeight: 700 }}>split</span>
+const IconToggleHeader = () => <span style={{ fontSize: 10, fontWeight: 700 }}>hdr</span>
+
+// ─── Insert Table popup ───────────────────────────────────────────────────────
+function InsertTablePopup({ onInsert, onClose }) {
+  const [rows, setRows] = useState(3)
+  const [cols, setCols] = useState(3)
+  return (
+    <div style={{
+      position: 'absolute', zIndex: 100, top: '100%', left: 0,
+      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.12)', padding: 16, minWidth: 220,
+    }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#0d1b2a', marginBottom: 12 }}>Insert Table</div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+        <label style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Rows</div>
+          <input
+            type="number" min={1} max={20} value={rows}
+            onChange={e => setRows(Math.max(1, Math.min(20, +e.target.value)))}
+            style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: 5, padding: '4px 8px', fontSize: 13 }}
+          />
+        </label>
+        <label style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Columns</div>
+          <input
+            type="number" min={1} max={10} value={cols}
+            onChange={e => setCols(Math.max(1, Math.min(10, +e.target.value)))}
+            style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: 5, padding: '4px 8px', fontSize: 13 }}
+          />
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          type="button"
+          onMouseDown={e => { e.preventDefault(); onInsert(rows, cols) }}
+          style={{
+            flex: 1, background: '#0d1b2a', color: '#fff', border: 'none',
+            borderRadius: 6, padding: '7px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          }}
+        >Insert</button>
+        <button
+          type="button"
+          onMouseDown={e => { e.preventDefault(); onClose() }}
+          style={{
+            flex: 1, background: '#f1f5f9', color: '#374151', border: 'none',
+            borderRadius: 6, padding: '7px 0', fontSize: 13, cursor: 'pointer',
+          }}
+        >Cancel</button>
+      </div>
+    </div>
+  )
+}
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function RichEditor({ value, onChange, placeholder, minHeight = 120 }) {
+  const [showTablePopup, setShowTablePopup] = useState(false)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -86,7 +157,11 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
       TextStyle,
       Color,
       Highlight.configure({ multicolor: true }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({ types: ['heading', 'paragraph', 'tableCell', 'tableHeader'] }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value || '',
     onUpdate({ editor }) {
@@ -110,18 +185,15 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
 
   if (!editor) return null
 
+  const inTable = editor.isActive('table')
+
   return (
-    <div style={{
-      border: '1px solid #e2e8f0',
-      borderRadius: 8,
-      overflow: 'hidden',
-      background: '#fff',
-    }}>
+    <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'visible', background: '#fff', position: 'relative' }}>
       {/* ── Toolbar ── */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2,
         padding: '6px 8px', borderBottom: '1px solid #e2e8f0',
-        background: '#f8fafc',
+        background: '#f8fafc', borderRadius: '8px 8px 0 0',
       }}>
         {/* History */}
         <Btn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo"><IconUndo /></Btn>
@@ -148,23 +220,12 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
           <select
             value={editor.getAttributes('textStyle').color || ''}
             onChange={e => {
-              if (e.target.value) {
-                editor.chain().focus().setColor(e.target.value).run()
-              } else {
-                editor.chain().focus().unsetColor().run()
-              }
+              if (e.target.value) editor.chain().focus().setColor(e.target.value).run()
+              else editor.chain().focus().unsetColor().run()
             }}
-            style={{
-              fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 4,
-              padding: '2px 4px', background: '#fff', cursor: 'pointer',
-              color: '#374151', height: 24,
-            }}
+            style={{ fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 4, padding: '2px 4px', background: '#fff', cursor: 'pointer', color: '#374151', height: 24 }}
           >
-            {TEXT_COLORS.map(c => (
-              <option key={c.value} value={c.value} style={{ color: c.value || '#374151' }}>
-                {c.label}
-              </option>
-            ))}
+            {TEXT_COLORS.map(c => <option key={c.value} value={c.value} style={{ color: c.value || '#374151' }}>{c.label}</option>)}
           </select>
         </span>
         <Sep />
@@ -175,21 +236,12 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
           <select
             value={editor.getAttributes('highlight').color || ''}
             onChange={e => {
-              if (e.target.value) {
-                editor.chain().focus().setHighlight({ color: e.target.value }).run()
-              } else {
-                editor.chain().focus().unsetHighlight().run()
-              }
+              if (e.target.value) editor.chain().focus().setHighlight({ color: e.target.value }).run()
+              else editor.chain().focus().unsetHighlight().run()
             }}
-            style={{
-              fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 4,
-              padding: '2px 4px', background: '#fff', cursor: 'pointer',
-              color: '#374151', height: 24,
-            }}
+            style={{ fontSize: 11, border: '1px solid #e2e8f0', borderRadius: 4, padding: '2px 4px', background: '#fff', cursor: 'pointer', color: '#374151', height: 24 }}
           >
-            {HIGHLIGHT_COLORS.map(c => (
-              <option key={c.value} value={c.value}>{c.label}</option>
-            ))}
+            {HIGHLIGHT_COLORS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </span>
         <Sep />
@@ -204,19 +256,60 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
         <Btn active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="Align left"><IconAlignL /></Btn>
         <Btn active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Align centre"><IconAlignC /></Btn>
         <Btn active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="Align right"><IconAlignR /></Btn>
+        <Sep />
+
+        {/* ── Table controls ── */}
+        {/* Insert table button — always visible */}
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <Btn
+            active={showTablePopup}
+            onClick={() => setShowTablePopup(v => !v)}
+            title="Insert table"
+          >
+            <IconTable />
+          </Btn>
+          {showTablePopup && (
+            <InsertTablePopup
+              onInsert={(rows, cols) => {
+                editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run()
+                setShowTablePopup(false)
+              }}
+              onClose={() => setShowTablePopup(false)}
+            />
+          )}
+        </div>
+
+        {/* Table editing controls — only shown when cursor is inside a table */}
+        {inTable && (
+          <>
+            <Sep />
+            <Btn onClick={() => editor.chain().focus().addColumnBefore().run()} title="Insert column before"><IconColBefore /></Btn>
+            <Btn onClick={() => editor.chain().focus().addColumnAfter().run()} title="Insert column after"><IconColAfter /></Btn>
+            <Btn onClick={() => editor.chain().focus().addRowBefore().run()} title="Insert row above"><IconRowBefore /></Btn>
+            <Btn onClick={() => editor.chain().focus().addRowAfter().run()} title="Insert row below"><IconRowAfter /></Btn>
+            <Sep />
+            <Btn onClick={() => editor.chain().focus().deleteColumn().run()} title="Delete column" danger><IconDelCol /></Btn>
+            <Btn onClick={() => editor.chain().focus().deleteRow().run()} title="Delete row" danger><IconDelRow /></Btn>
+            <Sep />
+            <Btn onClick={() => editor.chain().focus().mergeCells().run()} title="Merge selected cells" disabled={!editor.can().mergeCells()}><IconMergeCells /></Btn>
+            <Btn onClick={() => editor.chain().focus().splitCell().run()} title="Split cell" disabled={!editor.can().splitCell()}><IconSplitCell /></Btn>
+            <Btn onClick={() => editor.chain().focus().toggleHeaderRow().run()} title="Toggle header row"><IconToggleHeader /></Btn>
+            <Sep />
+            <Btn onClick={() => editor.chain().focus().deleteTable().run()} title="Delete table" danger><IconDelTable /></Btn>
+          </>
+        )}
       </div>
 
       {/* ── Editor area ── */}
       <div
-        onClick={() => editor.commands.focus()}
+        onClick={() => { editor.commands.focus(); setShowTablePopup(false) }}
         style={{ cursor: 'text', position: 'relative' }}
       >
         {/* Placeholder */}
         {editor.isEmpty && placeholder && (
           <span style={{
             position: 'absolute', top: 10, left: 12,
-            color: '#9ca3af', fontSize: 14, pointerEvents: 'none',
-            userSelect: 'none',
+            color: '#9ca3af', fontSize: 14, pointerEvents: 'none', userSelect: 'none',
           }}>
             {placeholder}
           </span>
@@ -240,6 +333,53 @@ export default function RichEditor({ value, onChange, placeholder, minHeight = 1
         .ProseMirror pre code { background: none; color: inherit; }
         .ProseMirror mark { border-radius: 2px; padding: 0 2px; }
         .ProseMirror hr { border: none; border-top: 2px solid #e2e8f0; margin: 12px 0; }
+
+        /* ── Table styles ── */
+        .ProseMirror table {
+          border-collapse: collapse;
+          table-layout: fixed;
+          width: 100%;
+          margin: 10px 0;
+          overflow: hidden;
+          border-radius: 6px;
+        }
+        .ProseMirror td, .ProseMirror th {
+          min-width: 60px;
+          border: 1px solid #e2e8f0;
+          padding: 6px 10px;
+          vertical-align: top;
+          box-sizing: border-box;
+          position: relative;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .ProseMirror th {
+          font-weight: 700;
+          background: #f8fafc;
+          color: #0d1b2a;
+          text-align: left;
+        }
+        .ProseMirror td > *, .ProseMirror th > * { margin: 0; }
+        .ProseMirror td p, .ProseMirror th p { margin: 0; }
+        .ProseMirror .selectedCell:after {
+          z-index: 2;
+          position: absolute;
+          content: "";
+          left: 0; right: 0; top: 0; bottom: 0;
+          background: rgba(13, 27, 42, 0.08);
+          pointer-events: none;
+        }
+        .ProseMirror .column-resize-handle {
+          position: absolute;
+          right: -2px;
+          top: 0; bottom: 0;
+          width: 4px;
+          background: #0d1b2a;
+          cursor: col-resize;
+          z-index: 20;
+        }
+        .tableWrapper { overflow-x: auto; }
+        .resize-cursor { cursor: col-resize; }
       `}</style>
     </div>
   )

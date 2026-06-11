@@ -66,3 +66,7 @@ html, body {
 .rich-content em { font-style: italic; }
 .rich-content u { text-decoration: underline; }
 .rich-content s { text-decoration: line-through; }
+.rich-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+.rich-content td, .rich-content th { border: 1px solid #e2e8f0; padding: 6px 10px; vertical-align: top; font-size: 13px; line-height: 1.5; }
+.rich-content th { font-weight: 700; background: #f8fafc; color: #0d1b2a; text-align: left; }
+.rich-content td p, .rich-content th p { margin: 0; }
