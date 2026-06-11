@@ -118,6 +118,13 @@ export default function CaseDiary() {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const getDaysUntil = (dateStr) => {
+    if (!dateStr) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const next = new Date(dateStr + 'T00:00:00');
+    return Math.round((next - today) / (1000 * 60 * 60 * 24));
+  };
+
   const filtered = entries.filter(e => {
     const matchStatus = filterStatus === 'All' || e.status === filterStatus;
     const q = search.toLowerCase();
@@ -213,13 +220,6 @@ export default function CaseDiary() {
     if (!d) return null;
     const dt = new Date(d + 'T12:00:00');
     return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const getDaysUntil = (dateStr) => {
-    if (!dateStr) return null;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const next = new Date(dateStr + 'T00:00:00');
-    return Math.round((next - today) / (1000 * 60 * 60 * 24));
   };
 
   const getUrgencyStyle = (days) => {
