@@ -30,6 +30,7 @@ export default function AllCasesPage() {
   const [filter, setFilter] = useState('all')
   const [viewMode, setViewMode] = useState('all') // 'all' or 'mine'
   const [search, setSearch] = useState('')
+  const [myCaseIds, setMyCaseIds] = useState(new Set())
 
   // Read query params on mount
   useEffect(() => {
@@ -61,12 +62,13 @@ export default function AllCasesPage() {
       setUserId(user.id)
 
       // Partners see all cases; associates only see public cases (enforced by RLS)
-      const { data } = await supabase
-        .from('cases')
-        .select('*, profiles!cases_assigned_to_fkey(full_name)')
-        .order('updated_at', { ascending: false })
+      const [casesRes, myCasesRes] = await Promise.all([
+        supabase.from('cases').select('*, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+        supabase.from('user_cases').select('case_id').eq('user_id', user.id),
+      ])
 
-      setCases(data || [])
+      setCases(casesRes.data || [])
+      setMyCaseIds(new Set((myCasesRes.data || []).map(r => r.case_id)))
       setLoading(false)
     }
     load()
@@ -76,7 +78,7 @@ export default function AllCasesPage() {
 
   const filtered = cases.filter(c => {
     const matchStatus = filter === 'all' || c.status === filter
-    const matchMine = viewMode === 'all' || c.assigned_to === userId
+    const matchMine = viewMode === 'all' || myCaseIds.has(c.id) || c.assigned_to === userId
     const q = search.toLowerCase().trim()
     const matchSearch = !q ||
       (c.client_name || '').toLowerCase().includes(q) ||
@@ -109,9 +111,10 @@ export default function AllCasesPage() {
     </Layout>
   )
 
-  const openCount = cases.filter(c => (viewMode === 'mine' ? c.assigned_to === userId : true) && c.status === 'open').length
-  const closedCount = cases.filter(c => (viewMode === 'mine' ? c.assigned_to === userId : true) && c.status === 'closed').length
-  const myCasesCount = cases.filter(c => c.assigned_to === userId).length
+  const isMine = c => myCaseIds.has(c.id) || c.assigned_to === userId
+  const openCount = cases.filter(c => (viewMode === 'mine' ? isMine(c) : true) && c.status === 'open').length
+  const closedCount = cases.filter(c => (viewMode === 'mine' ? isMine(c) : true) && c.status === 'closed').length
+  const myCasesCount = cases.filter(isMine).length
   const allCount = viewMode === 'mine' ? myCasesCount : cases.length
 
   const pageTitle = viewMode === 'mine'

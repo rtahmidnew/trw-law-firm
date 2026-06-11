@@ -118,6 +118,7 @@ export default function Dashboard() {
   const [userId, setUserId] = useState(null)
   const [search, setSearch] = useState('')
   const [togglingStarId, setTogglingStarId] = useState(null)
+  const [myCaseIds, setMyCaseIds] = useState(new Set())
 
   useEffect(() => {
     async function load() {
@@ -134,12 +135,17 @@ export default function Dashboard() {
       setProfile(prof)
       setUserId(user.id)
 
-      const { data: allCases } = await supabase
-        .from('cases')
-        .select('*')
-        .order('updated_at', { ascending: false })
+      const [casesRes, myCasesRes] = await Promise.all([
+        supabase.from('cases').select('*').order('updated_at', { ascending: false }),
+        supabase.from('user_cases').select('case_id').eq('user_id', user.id),
+      ])
 
-      setCases(allCases || [])
+      setCases(casesRes.data || [])
+      const myIds = new Set((myCasesRes.data || []).map(r => r.case_id))
+      // Also include cases assigned to this user
+      const allCases = casesRes.data || []
+      const myCasesList = allCases.filter(c => myIds.has(c.id) || c.assigned_to === user.id)
+      setMyCaseIds(myIds)
       setLoading(false)
     }
     load()
@@ -170,7 +176,7 @@ export default function Dashboard() {
     </Layout>
   )
 
-  const myCases = cases.filter(c => c.assigned_to === userId)
+  const myCases = cases.filter(c => myCaseIds.has(c.id) || c.assigned_to === userId)
   const openCases = myCases.filter(c => c.status === 'open')
   const pendingCases = myCases.filter(c => c.status === 'pending')
   const starredCases = cases.filter(c => c.is_starred)

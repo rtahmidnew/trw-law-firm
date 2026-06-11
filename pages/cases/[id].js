@@ -66,6 +66,10 @@ export default function CaseDetail() {
   // Star toggle
   const [toggingStar, setToggingStar] = useState(false)
 
+  // My Cases (user_cases junction)
+  const [inMyCases, setInMyCases] = useState(false)
+  const [toggingMyCases, setToggingMyCases] = useState(false)
+
   // Client Portal
   const [portalModalOpen, setPortalModalOpen] = useState(false)
   const [portalLink, setPortalLink] = useState(null)
@@ -81,12 +85,13 @@ export default function CaseDetail() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
-    const [profileRes, caseRes, timelineRes, docsRes, deadlinesRes] = await Promise.all([
+    const [profileRes, caseRes, timelineRes, docsRes, deadlinesRes, myCasesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
       supabase.from('cases').select('*').eq('id', id).single(),
       supabase.from('timeline_entries').select('*, profiles(full_name)').eq('case_id', id).order('created_at', { ascending: false }),
       supabase.from('documents').select('*').eq('case_id', id).order('uploaded_at', { ascending: false }),
       supabase.from('deadlines').select('*').eq('case_id', id).order('due_date', { ascending: true }),
+      supabase.from('user_cases').select('id').eq('user_id', user.id).eq('case_id', id).maybeSingle(),
     ])
 
     setProfile(profileRes.data)
@@ -94,6 +99,7 @@ export default function CaseDetail() {
     setTimeline(timelineRes.data || [])
     setDocuments(docsRes.data || [])
     setDeadlines(deadlinesRes.data || [])
+    setInMyCases(!!myCasesRes.data)
     setLoading(false)
   }
 
@@ -400,6 +406,20 @@ export default function CaseDetail() {
     if (data) setDocuments(prev => prev.map(d => d.id === doc.id ? data : d))
   }
 
+  // ── My Cases Toggle ─────────────────────────────────────
+  async function toggleMyCases() {
+    setToggingMyCases(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (inMyCases) {
+      await supabase.from('user_cases').delete().eq('user_id', user.id).eq('case_id', id)
+      setInMyCases(false)
+    } else {
+      await supabase.from('user_cases').insert({ user_id: user.id, case_id: id })
+      setInMyCases(true)
+    }
+    setToggingMyCases(false)
+  }
+
   // ── Delete Case ──────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -563,6 +583,25 @@ export default function CaseDetail() {
                   <IconStar size={12} filled={caseData.is_starred} />
                   {caseData.is_starred ? 'Starred' : 'Star'}
                 </button>
+                {!isPartner && (
+                  <button
+                    onClick={toggleMyCases}
+                    disabled={toggingMyCases}
+                    title={inMyCases ? 'Remove from My Cases' : 'Add to My Cases'}
+                    className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      inMyCases
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {inMyCases ? (
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 8h12M8 2v12" transform={inMyCases ? 'rotate(45 8 8)' : ''}/></svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 2v12M2 8h12"/></svg>
+                    )}
+                    {inMyCases ? 'In My Cases' : 'Add to My Cases'}
+                  </button>
+                )}
               </div>
               {/* Feature buttons */}
               <div className="flex flex-col gap-1.5">
