@@ -1,15 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
 
+// Monochrome SVG icons
+const IconHearing = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+    <circle cx="12" cy="12" r="5"/>
+  </svg>
+);
+
+const IconEnquiry = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+    <polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+
+const IconBell = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+);
+
+const IconClose = ({ size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="1" y1="1" x2="13" y2="13"/>
+    <line x1="13" y1="1" x2="1" y2="13"/>
+  </svg>
+);
+
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  // Track IDs deleted this session so they don't reappear on re-fetch
+  const deletedIds = useRef(new Set());
 
   useEffect(() => {
     fetchNotifications();
@@ -22,7 +53,11 @@ export default function NotificationsPage() {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (!error) setNotifications(data || []);
+    if (!error) {
+      // Filter out any IDs the user already deleted this session
+      const fresh = (data || []).filter(n => !deletedIds.current.has(n.id));
+      setNotifications(fresh);
+    }
     setLoading(false);
   }
 
@@ -39,8 +74,11 @@ export default function NotificationsPage() {
   }
 
   async function deleteNotification(id) {
-    await supabase.from('notifications').delete().eq('id', id);
+    // Optimistically remove from UI immediately
+    deletedIds.current.add(id);
     setNotifications(prev => prev.filter(n => n.id !== id));
+    // Delete from DB in background
+    await supabase.from('notifications').delete().eq('id', id);
   }
 
   function formatDate(dateStr) {
@@ -67,6 +105,12 @@ export default function NotificationsPage() {
     return 'Notification';
   }
 
+  function getIcon(type) {
+    if (type?.includes('hearing')) return <IconHearing />;
+    if (type === 'new_enquiry') return <IconEnquiry />;
+    return <IconBell />;
+  }
+
   const filtered = notifications.filter(n => {
     if (filter === 'unread') return !n.is_read;
     if (filter === 'hearing') return n.type?.includes('hearing');
@@ -81,52 +125,48 @@ export default function NotificationsPage() {
       <Head><title>Notifications — TRW Law Firm</title></Head>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
-        {/* Header row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0d1b2a', margin: 0, letterSpacing: '-0.02em' }}>
               Notifications
             </h1>
             {unreadCount > 0 && (
-              <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 0' }}>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '4px 0 0' }}>
                 {unreadCount} unread
               </p>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
                 style={{
-                  background: 'none', color: '#0d1b2a', border: '1px solid #d1d5db',
-                  borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', letterSpacing: '0.01em'
+                  background: 'none', color: '#374151', border: '1px solid #d1d5db',
+                  borderRadius: 7, padding: '7px 13px', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer'
                 }}
               >
                 Mark all read
               </button>
             )}
-            {/* Close / back button */}
             <button
               onClick={() => router.back()}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 34, height: 34, borderRadius: 7,
-                background: 'none', border: '1px solid #d1d5db',
-                cursor: 'pointer', color: '#374151'
+                background: '#fff', border: '1px solid #d1d5db',
+                cursor: 'pointer', color: '#374151', flexShrink: 0
               }}
-              title="Close"
+              title="Go back"
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="1" y1="1" x2="13" y2="13"/>
-                <line x1="13" y1="1" x2="1" y2="13"/>
-              </svg>
+              <IconClose size={12} />
             </button>
           </div>
         </div>
 
         {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: 0 }}>
           {[
             { key: 'all', label: 'All' },
             { key: 'unread', label: `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
@@ -150,53 +190,55 @@ export default function NotificationsPage() {
           ))}
         </div>
 
-        {/* Notification list */}
+        {/* List */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af', fontSize: 14 }}>Loading…</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
+            <div style={{ color: '#d1d5db', marginBottom: 10 }}><IconBell /></div>
             <p style={{ margin: 0, fontSize: 14 }}>No notifications{filter !== 'all' ? ' here' : ''}</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <div>
             {filtered.map((n, i) => (
               <div
                 key={n.id}
                 style={{
                   background: n.is_read ? '#fff' : '#fafafa',
-                  borderTop: i === 0 ? '1px solid #e5e7eb' : 'none',
                   borderBottom: '1px solid #e5e7eb',
                   padding: '16px 0',
                   display: 'flex',
-                  gap: 14,
+                  gap: 12,
                   alignItems: 'flex-start',
-                  cursor: n.is_read ? 'default' : 'pointer',
                 }}
-                onClick={() => !n.is_read && markAsRead(n.id)}
               >
-                {/* Unread dot */}
-                <div style={{ width: 20, flexShrink: 0, paddingTop: 4, display: 'flex', justifyContent: 'center' }}>
-                  {!n.is_read && (
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#0d1b2a', display: 'inline-block', marginTop: 2 }} />
-                  )}
+                {/* Icon column */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  background: '#f3f4f6', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', color: '#374151', marginTop: 2
+                }}>
+                  {getIcon(n.type)}
                 </div>
 
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ marginBottom: 3 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                     <span style={{
                       fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                      letterSpacing: '0.08em', color: '#9ca3af'
+                      letterSpacing: '0.07em', color: '#9ca3af'
                     }}>
                       {getTypeLabel(n.type)}
                     </span>
+                    {!n.is_read && (
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: '#0d1b2a', display: 'inline-block', flexShrink: 0
+                      }} />
+                    )}
                   </div>
                   <p style={{
-                    margin: '0 0 4px', fontSize: 14,
+                    margin: '0 0 3px', fontSize: 14,
                     fontWeight: n.is_read ? 400 : 600,
                     color: '#0d1b2a', lineHeight: 1.45
                   }}>
@@ -223,7 +265,7 @@ export default function NotificationsPage() {
                     )}
                     {!n.is_read && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                        onClick={() => markAsRead(n.id)}
                         style={{
                           background: 'none', border: 'none', padding: 0,
                           fontSize: 12, color: '#9ca3af', cursor: 'pointer',
@@ -236,20 +278,21 @@ export default function NotificationsPage() {
                   </div>
                 </div>
 
-                {/* Delete */}
+                {/* Delete button — clearly labelled */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
-                  title="Dismiss"
+                  onClick={() => deleteNotification(n.id)}
+                  title="Delete notification"
                   style={{
-                    background: 'none', border: 'none', padding: '2px 4px',
-                    cursor: 'pointer', color: '#d1d5db', flexShrink: 0,
-                    lineHeight: 1, fontSize: 16, marginTop: 2
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                    background: 'none', border: '1px solid #e5e7eb',
+                    cursor: 'pointer', color: '#9ca3af', marginTop: 2,
+                    transition: 'border-color 0.15s, color 0.15s'
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#374151'; e.currentTarget.style.color = '#374151'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af'; }}
                 >
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <line x1="1" y1="1" x2="13" y2="13"/>
-                    <line x1="13" y1="1" x2="1" y2="13"/>
-                  </svg>
+                  <IconClose size={10} />
                 </button>
               </div>
             ))}
