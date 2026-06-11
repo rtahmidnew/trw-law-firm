@@ -86,30 +86,34 @@ export default function CaseDiary() {
   const addFormRef = useRef(null);
 
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/'); return; }
-      setUser(session.user);
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const u = session.user;
+      setUser(u);
+      // Fetch profile and diary entries in parallel
+      const [{ data: prof }, { data: diaryData }] = await Promise.all([
+        supabase.from('profiles').select('id, role, full_name').eq('id', u.id).single(),
+        supabase.from('case_diary')
+          .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id')
+          .order('diary_no', { ascending: true }),
+      ]);
       setProfile(prof);
+      setEntries(diaryData || []);
+      setLoading(false);
     };
-    getUser();
+    init();
   }, [router]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchEntries();
-  }, [user]);
 
   const fetchEntries = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('case_diary')
-      .select('*')
+      .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id')
       .order('diary_no', { ascending: true });
     if (!error) setEntries(data || []);
     setLoading(false);
-  }, [user]);
+  }, []);
 
   const canEdit = profile?.role === 'partner' || profile?.role === 'associate';
 

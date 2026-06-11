@@ -133,7 +133,7 @@ export default function AdminDashboard() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, role, full_name, email')
         .eq('id', user.id)
         .single()
 
@@ -141,8 +141,8 @@ export default function AdminDashboard() {
       setProfile(prof)
 
       const [assocRes, casesRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('role', 'associate'),
-        supabase.from('cases').select('*, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+        supabase.from('profiles').select('id, full_name, email, role').eq('role', 'associate'),
+        supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
       ])
 
       setAssociates(assocRes.data || [])

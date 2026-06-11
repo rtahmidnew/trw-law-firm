@@ -127,7 +127,7 @@ export default function Dashboard() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, role, full_name, email')
         .eq('id', user.id)
         .single()
 
@@ -136,7 +136,7 @@ export default function Dashboard() {
       setUserId(user.id)
 
       const [casesRes, myCasesRes] = await Promise.all([
-        supabase.from('cases').select('*').order('updated_at', { ascending: false }),
+        supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at').order('updated_at', { ascending: false }),
         supabase.from('user_cases').select('case_id').eq('user_id', user.id),
       ])
 

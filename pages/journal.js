@@ -83,14 +83,15 @@ export default function Journal() {
   const [savingHearing, setSavingHearing] = useState(false);
 
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/'); return; }
-      setUser(session.user);
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const u = session.user;
+      setUser(u);
+      const { data: prof } = await supabase.from('profiles').select('role,full_name').eq('id', u.id).single();
       setProfile(prof);
     };
-    getUser();
+    init();
   }, [router]);
 
   useEffect(() => {
@@ -102,46 +103,59 @@ export default function Journal() {
     setLoading(true);
     const startDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
     const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    const { data: entries } = await supabase
-      .from('journal_entries')
-      .select('*, cases(client_name)')
-      .eq('user_id', user.id)
-      .gte('entry_date', startDate)
-      .lte('entry_date', endDate)
-      .order('entry_date', { ascending: true });
+    // Fire all 5 queries in parallel
+    const [
+      { data: entries },
+      { data: rems },
+      { data: casesData },
+      { data: allDiary },
+      { data: diaryMonth },
+      { data: diaryAll },
+    ] = await Promise.all([
+      supabase
+        .from('journal_entries')
+        .select('id, entry_date, title, content, case_id, cases(client_name)')
+        .eq('user_id', user.id)
+        .gte('entry_date', startDate)
+        .lte('entry_date', endDate)
+        .order('entry_date', { ascending: true }),
+      supabase
+        .from('reminders')
+        .select('id, title, description, reminder_datetime, case_id, cases(client_name)')
+        .eq('user_id', user.id)
+        .gte('reminder_datetime', new Date().toISOString())
+        .order('reminder_datetime', { ascending: true }),
+      supabase
+        .from('cases')
+        .select('id, client_name, file_number')
+        .eq('is_public', true)
+        .order('client_name'),
+      supabase
+        .from('case_diary')
+        .select('id, diary_no, parties, next_date, next_step, linked_case_id')
+        .eq('status', 'Active')
+        .order('diary_no', { ascending: true }),
+      supabase
+        .from('case_diary')
+        .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
+        .gte('next_date', startDate)
+        .lte('next_date', endDate)
+        .eq('status', 'Active')
+        .order('next_date', { ascending: true }),
+      supabase
+        .from('case_diary')
+        .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
+        .gte('next_date', todayStr)
+        .eq('status', 'Active')
+        .order('next_date', { ascending: true }),
+    ]);
+
     setJournalEntries(entries || []);
-
-    const { data: rems } = await supabase
-      .from('reminders')
-      .select('*, cases(client_name)')
-      .eq('user_id', user.id)
-      .gte('reminder_datetime', new Date().toISOString())
-      .order('reminder_datetime', { ascending: true });
     setReminders(rems || []);
-
-    const { data: casesData } = await supabase
-      .from('cases')
-      .select('id, client_name, file_number')
-      .order('client_name');
     setCases(casesData || []);
-
-    // Fetch all diary entries for "Set Hearing Date" dropdown
-    const { data: allDiary } = await supabase
-      .from('case_diary')
-      .select('id, diary_no, parties, next_date, next_step, linked_case_id')
-      .eq('status', 'Active')
-      .order('diary_no', { ascending: true });
     setDiaryEntries(allDiary || []);
-
-    // Fetch hearings for current month (calendar dots) — status = 'Active' (capital A)
-    const { data: diaryMonth } = await supabase
-      .from('case_diary')
-      .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
-      .gte('next_date', startDate)
-      .lte('next_date', endDate)
-      .eq('status', 'Active')
-      .order('next_date', { ascending: true });
 
     const hdMap = {};
     const hearingsList = [];
@@ -162,15 +176,6 @@ export default function Journal() {
     });
     setHearingDates(hdMap);
     setMonthHearings(hearingsList);
-
-    // Fetch ALL upcoming hearings (Hearings tab)
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { data: diaryAll } = await supabase
-      .from('case_diary')
-      .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
-      .gte('next_date', todayStr)
-      .eq('status', 'Active')
-      .order('next_date', { ascending: true });
 
     setAllUpcomingHearings((diaryAll || []).map(d => ({
       id: d.id,
