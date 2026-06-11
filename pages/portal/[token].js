@@ -237,7 +237,10 @@ export default function ClientPortal() {
                     <div key={entry.id} className="relative">
                       <div className="absolute -left-5.5 top-3 w-2.5 h-2.5 rounded-full bg-gray-800 border-2 border-white shadow-sm" style={{ left: '-1.375rem' }} />
                       <div className="bg-gray-50 rounded-lg border border-gray-100 p-3 sm:p-4">
-                        <p className="text-sm text-gray-800 leading-relaxed">{entry.entry_text}</p>
+                        <div
+                          className="text-sm text-gray-800 leading-relaxed rich-content"
+                          dangerouslySetInnerHTML={{ __html: entry.entry_text }}
+                        />
                         {entry.entry_date && (
                           <p className="text-xs text-gray-400 mt-2 font-medium">
                             {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

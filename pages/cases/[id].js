@@ -5,6 +5,8 @@ import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
 import { IconGlobe, IconLock, IconInvoice, IconMail, IconLink, IconEdit, IconClipboard, IconFile, IconFileText, IconSearch, IconX, IconList, IconGrid, IconCheck, IconTrash, IconAlertTriangle, IconBell, IconCalendar, IconEye, IconDownload, IconPaperclip, IconClock, IconStar } from '../../components/Icons'
+import dynamic from 'next/dynamic'
+const RichEditor = dynamic(() => import('../../components/RichEditor'), { ssr: false })
 
 const TABS = ['Timeline', 'Documents', 'Deadlines']
 
@@ -810,12 +812,11 @@ export default function CaseDetail() {
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <textarea
+            <RichEditor
               value={newEntry}
-              onChange={e => setNewEntry(e.target.value)}
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              onChange={setNewEntry}
               placeholder="e.g. Drafted and filed writ petition. Hearing scheduled for next week."
+              minHeight={100}
             />
             <div className="flex justify-end mt-2">
               <button
@@ -852,11 +853,10 @@ export default function CaseDetail() {
                             className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
-                        <textarea
+                        <RichEditor
                           value={editEntryText}
-                          onChange={e => setEditEntryText(e.target.value)}
-                          rows={3}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          onChange={setEditEntryText}
+                          minHeight={100}
                         />
                         <div className="flex gap-2 mt-2 justify-end">
                           <button
@@ -878,7 +878,10 @@ export default function CaseDetail() {
                       /* ── VIEW MODE for this entry ── */
                       <div className="bg-white rounded-xl border border-gray-200 p-4">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm text-gray-900 leading-relaxed flex-1">{entry.entry_text}</p>
+                          <div
+                            className="text-sm text-gray-900 leading-relaxed flex-1 rich-content"
+                            dangerouslySetInnerHTML={{ __html: entry.entry_text }}
+                          />
                           <div className="flex gap-1 shrink-0">
                               {/* Hide from client toggle — visible to partners & associates */}
                               <button

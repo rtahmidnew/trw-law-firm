@@ -47,3 +47,22 @@ html, body {
 * {
   font-family: 'Gilroy', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+/* ── Rich text content rendering (timeline entries, journal entries) ── */
+.rich-content p { margin: 0 0 8px; }
+.rich-content p:last-child { margin-bottom: 0; }
+.rich-content h1 { font-size: 1.4em; font-weight: 700; margin: 12px 0 6px; }
+.rich-content h2 { font-size: 1.2em; font-weight: 700; margin: 10px 0 5px; }
+.rich-content h3 { font-size: 1.05em; font-weight: 700; margin: 8px 0 4px; }
+.rich-content ul { padding-left: 20px; margin: 6px 0; list-style-type: disc; }
+.rich-content ol { padding-left: 20px; margin: 6px 0; list-style-type: decimal; }
+.rich-content li { margin: 2px 0; }
+.rich-content blockquote { border-left: 3px solid #cbd5e1; margin: 8px 0; padding-left: 12px; color: #64748b; }
+.rich-content code { background: #f1f5f9; border-radius: 3px; padding: 1px 4px; font-size: 0.9em; font-family: monospace; }
+.rich-content pre { background: #1e293b; color: #e2e8f0; border-radius: 6px; padding: 12px; margin: 8px 0; overflow-x: auto; }
+.rich-content pre code { background: none; color: inherit; }
+.rich-content mark { border-radius: 2px; padding: 0 2px; }
+.rich-content strong { font-weight: 700; }
+.rich-content em { font-style: italic; }
+.rich-content u { text-decoration: underline; }
+.rich-content s { text-decoration: line-through; }

@@ -9,16 +9,27 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.8.7",
+    "@supabase/auth-helpers-react": "^0.4.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "@tiptap/extension-bullet-list": "^3.26.1",
+    "@tiptap/extension-color": "^3.26.1",
+    "@tiptap/extension-highlight": "^3.26.1",
+    "@tiptap/extension-list-item": "^3.26.1",
+    "@tiptap/extension-ordered-list": "^3.26.1",
+    "@tiptap/extension-text-align": "^3.26.1",
+    "@tiptap/extension-text-style": "^3.26.1",
+    "@tiptap/extension-underline": "^3.26.1",
+    "@tiptap/pm": "^3.26.1",
+    "@tiptap/react": "^3.26.1",
+    "@tiptap/starter-kit": "^3.26.1",
     "next": "14.2.3",
     "react": "^18",
-    "react-dom": "^18",
-    "@supabase/supabase-js": "^2.39.0",
-    "@supabase/auth-helpers-nextjs": "^0.8.7",
-    "@supabase/auth-helpers-react": "^0.4.2"
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.1",
     "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.35"
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
   }
 }

@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
+import dynamic from 'next/dynamic';
+const RichEditor = dynamic(() => import('../components/RichEditor'), { ssr: false });
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -666,14 +668,14 @@ export default function Journal() {
                     {editingEntry ? 'Edit Entry — ' : 'New Entry — '}{formatSelectedDate()}
                   </h2>
                   <input className="jc-input" type="text" placeholder="Title (optional)" value={journalTitle} onChange={e => setJournalTitle(e.target.value)} style={{ marginBottom: 12 }} />
-                  <textarea
-                    className="jc-textarea"
-                    placeholder="Write your journal entry for this day — what you worked on, meetings attended, progress made, notes..."
-                    value={journalContent}
-                    onChange={e => setJournalContent(e.target.value)}
-                    rows={6}
-                    style={{ marginBottom: 12 }}
-                  />
+                  <div style={{ marginBottom: 12 }}>
+                    <RichEditor
+                      value={journalContent}
+                      onChange={setJournalContent}
+                      placeholder="Write your journal entry for this day — what you worked on, meetings attended, progress made, notes..."
+                      minHeight={140}
+                    />
+                  </div>
                   <select className="jc-select" value={journalCase} onChange={e => setJournalCase(e.target.value)} style={{ marginBottom: 14 }}>
                     <option value="">Link to case (optional)</option>
                     {cases.map(c => <option key={c.id} value={c.id}>{c.client_name}{c.file_number ? ` (${c.file_number})` : ''}</option>)}
@@ -696,7 +698,11 @@ export default function Journal() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                           <div style={{ flex: 1 }}>
                             {entry.title && <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700, color: '#0d1b2a' }}>{entry.title}</h4>}
-                            <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.content}</p>
+                            <div
+                              className="rich-content"
+                              style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}
+                              dangerouslySetInnerHTML={{ __html: entry.content }}
+                            />
                             {entry.cases && (
                               <span style={{ display: 'inline-block', marginTop: 8, fontSize: 12, color: '#64748b', background: '#f8fafc', borderRadius: 4, padding: '2px 8px' }}>
                                 {entry.cases.client_name}
