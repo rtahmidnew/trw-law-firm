@@ -87,7 +87,7 @@ export default function CaseDiary() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({
     diary_no: '', parties: '', case_no: '', court: '',
-    previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: ''
+    previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: 'DOHS Chamber'
   });
   const [addSaving, setAddSaving] = useState(false);
 
@@ -191,7 +191,7 @@ export default function CaseDiary() {
       next_date: editForm.next_date || null,
       next_step: editForm.next_step.trim() || null,
       status: editForm.status,
-
+      possession_of: (editForm.possession_of || '').trim() || null,
       updated_at: new Date().toISOString()
     };
     const { error } = await supabase.from('case_diary').update(payload).eq('id', entryId);
@@ -229,7 +229,7 @@ export default function CaseDiary() {
     await supabase.from('case_diary').insert(payload);
     setAddSaving(false);
     setShowAddForm(false);
-    setAddForm({ diary_no: '', parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: '' });
+    setAddForm({ diary_no: '', parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: 'DOHS Chamber' });
     showToast('New entry added.');
     fetchEntries();
   };
