@@ -18,16 +18,14 @@ export default function Journal() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [cases, setCases] = useState([]);
-  const [activeTab, setActiveTab] = useState('journal'); // 'journal' | 'reminders' | 'hearings'
+  const [activeTab, setActiveTab] = useState('journal');
 
-  // Journal form
   const [journalTitle, setJournalTitle] = useState('');
   const [journalContent, setJournalContent] = useState('');
   const [journalCase, setJournalCase] = useState('');
   const [editingEntry, setEditingEntry] = useState(null);
   const [savingJournal, setSavingJournal] = useState(false);
 
-  // Reminder form
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [reminderTitle, setReminderTitle] = useState('');
   const [reminderDesc, setReminderDesc] = useState('');
@@ -39,11 +37,10 @@ export default function Journal() {
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
-  // hearingDates: { 'YYYY-MM-DD': [{id, diary_no, parties, next_step, linked_case_id, case_file_number, case_client_name}] }
   const [hearingDates, setHearingDates] = useState({});
-  const [hearingPopup, setHearingPopup] = useState(null); // {day, dateStr, entries[]}
-  // All hearings for this month (for the Hearings tab)
+  const [hearingPopup, setHearingPopup] = useState(null);
   const [monthHearings, setMonthHearings] = useState([]);
+  const [allUpcomingHearings, setAllUpcomingHearings] = useState([]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -66,7 +63,6 @@ export default function Journal() {
     const startDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
     const endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0];
 
-    // Fetch journal entries for this month
     const { data: entries } = await supabase
       .from('journal_entries')
       .select('*, cases(client_name)')
@@ -76,7 +72,6 @@ export default function Journal() {
       .order('entry_date', { ascending: true });
     setJournalEntries(entries || []);
 
-    // Fetch upcoming reminders
     const { data: rems } = await supabase
       .from('reminders')
       .select('*, cases(client_name)')
@@ -85,25 +80,24 @@ export default function Journal() {
       .order('reminder_datetime', { ascending: true });
     setReminders(rems || []);
 
-    // Fetch cases for dropdown
     const { data: casesData } = await supabase
       .from('cases')
       .select('id, client_name, file_number')
       .order('client_name');
     setCases(casesData || []);
 
-    // Fetch Case Diary hearing dates for this month (status = 'active' lowercase)
-    const { data: diaryData } = await supabase
+    // Fetch hearings for current month (for calendar dots) — status = 'Active' (capital A)
+    const { data: diaryMonth } = await supabase
       .from('case_diary')
       .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
       .gte('next_date', startDate)
       .lte('next_date', endDate)
-      .eq('status', 'active')
+      .eq('status', 'Active')
       .order('next_date', { ascending: true });
 
     const hdMap = {};
     const hearingsList = [];
-    (diaryData || []).forEach(d => {
+    (diaryMonth || []).forEach(d => {
       const entry = {
         id: d.id,
         diary_no: d.diary_no,
@@ -121,16 +115,32 @@ export default function Journal() {
     setHearingDates(hdMap);
     setMonthHearings(hearingsList);
 
+    // Fetch ALL upcoming hearings (for Hearings tab) — not filtered by month
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data: diaryAll } = await supabase
+      .from('case_diary')
+      .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
+      .gte('next_date', todayStr)
+      .eq('status', 'Active')
+      .order('next_date', { ascending: true });
+
+    setAllUpcomingHearings((diaryAll || []).map(d => ({
+      id: d.id,
+      diary_no: d.diary_no,
+      parties: d.parties,
+      next_step: d.next_step,
+      next_date: d.next_date,
+      linked_case_id: d.linked_case_id,
+      case_file_number: d.cases?.file_number || null,
+      case_client_name: d.cases?.client_name || null,
+    })));
+
     setLoading(false);
   }, [user, currentMonth, currentYear]);
 
-  // Get entries for selected date
   const selectedEntries = journalEntries.filter(e => e.entry_date === selectedDate);
-
-  // Get days that have entries (for calendar dots)
   const daysWithEntries = new Set(journalEntries.map(e => e.entry_date));
 
-  // Calendar grid
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const calendarCells = [];
@@ -146,15 +156,16 @@ export default function Journal() {
     else setCurrentMonth(m => m + 1);
   };
 
+  const getDateStr = (day) => day ? `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : null;
+
   const handleDayClick = (day) => {
     if (!day) return;
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateStr = getDateStr(day);
     setSelectedDate(dateStr);
     setEditingEntry(null);
     setJournalTitle('');
     setJournalContent('');
     setJournalCase('');
-    // If this day has hearings, show the popup
     if (hearingDates[dateStr]) {
       setHearingPopup({ day, dateStr, entries: hearingDates[dateStr] });
     } else {
@@ -218,7 +229,6 @@ export default function Journal() {
       case_id: reminderCase || null,
       notify_partner: reminderNotifyPartner
     });
-    // Send email notification via API route
     try {
       await fetch('/api/send-reminder-email', {
         method: 'POST',
@@ -232,7 +242,7 @@ export default function Journal() {
           userName: profile?.full_name || user.email
         })
       });
-    } catch (e) { /* email sending is best-effort */ }
+    } catch (e) {}
     setReminderTitle('');
     setReminderDesc('');
     setReminderDate('');
@@ -263,60 +273,39 @@ export default function Journal() {
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const isToday = (day) => {
-    return day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
-  };
-
-  const isSelected = (day) => {
-    if (!day) return false;
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return dateStr === selectedDate;
-  };
-
-  const hasEntry = (day) => {
-    if (!day) return false;
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return daysWithEntries.has(dateStr);
-  };
-
-  const hasHearing = (day) => {
-    if (!day) return false;
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return !!hearingDates[dateStr];
-  };
-
-  const getHearingCount = (day) => {
-    if (!day) return 0;
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return (hearingDates[dateStr] || []).length;
-  };
-
-  const handleHearingClick = (e, day) => {
-    e.stopPropagation();
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const entries = hearingDates[dateStr] || [];
-    setHearingPopup({ day, dateStr, entries });
-  };
+  const isToday = (day) => day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+  const isSelected = (day) => !!day && getDateStr(day) === selectedDate;
+  const hasEntry = (day) => !!day && daysWithEntries.has(getDateStr(day));
+  const hasHearing = (day) => !!day && !!hearingDates[getDateStr(day)];
+  const getHearingCount = (day) => !day ? 0 : (hearingDates[getDateStr(day)] || []).length;
 
   const formatSelectedDate = () => {
     const d = new Date(selectedDate + 'T12:00:00');
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  // Days until hearing
   const daysUntil = (dateStr) => {
     if (!dateStr) return null;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = new Date(); now.setHours(0,0,0,0);
     const target = new Date(dateStr + 'T00:00:00');
-    const diff = Math.round((target - now) / (1000 * 60 * 60 * 24));
-    return diff;
+    return Math.round((target - now) / (1000 * 60 * 60 * 24));
   };
 
-  const urgencyColor = (dateStr) => {
+  const urgencyBadge = (dateStr) => {
     const d = daysUntil(dateStr);
-    if (d === null) return '#94a3b8';
-    if (d < 0) return '#94a3b8';
+    if (d === null) return null;
+    if (d < 0) return { label: `${Math.abs(d)}d ago`, bg: '#f1f5f9', color: '#94a3b8' };
+    if (d === 0) return { label: 'TODAY', bg: '#fef2f2', color: '#dc2626' };
+    if (d === 1) return { label: 'Tomorrow', bg: '#fef2f2', color: '#dc2626' };
+    if (d <= 3) return { label: `In ${d} days`, bg: '#fff7ed', color: '#ea580c' };
+    if (d <= 7) return { label: `In ${d} days`, bg: '#fefce8', color: '#ca8a04' };
+    if (d <= 14) return { label: `In ${d} days`, bg: '#eff6ff', color: '#2563eb' };
+    return { label: `In ${d} days`, bg: '#f0fdf4', color: '#16a34a' };
+  };
+
+  const borderColor = (dateStr) => {
+    const d = daysUntil(dateStr);
+    if (d === null || d < 0) return '#e2e8f0';
     if (d <= 3) return '#dc2626';
     if (d <= 7) return '#f59e0b';
     if (d <= 14) return '#3b82f6';
@@ -327,140 +316,189 @@ export default function Journal() {
 
   return (
     <Layout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+      <style>{`
+        .jc-page { max-width: 1400px; margin: 0 auto; padding: 24px 16px; }
+        .jc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+        .jc-title { font-size: 26px; font-weight: 700; color: #0d1b2a; margin: 0; }
+        .jc-subtitle { color: #64748b; margin-top: 4px; font-size: 14px; }
+        .jc-body { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .jc-calendar-col { width: 100%; }
+        .jc-panel-col { width: 100%; }
+        .jc-cal-box { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px; }
+        .jc-cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .jc-cal-nav-btn { background: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 18px; color: #374151; }
+        .jc-cal-nav-btn:hover { background: #f8fafc; }
+        .jc-cal-month { font-weight: 700; font-size: 18px; color: #0d1b2a; }
+        .jc-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+        .jc-cal-dayhead { text-align: center; font-size: 11px; font-weight: 600; color: #94a3b8; padding: 6px 0; }
+        .jc-cal-cell { text-align: center; padding: 8px 2px; border-radius: 8px; cursor: pointer; position: relative; font-size: 14px; font-weight: 400; color: #374151; border: 2px solid transparent; transition: all 0.15s; min-height: 44px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+        .jc-cal-cell:hover { background: #f8fafc; }
+        .jc-cal-cell.empty { cursor: default; }
+        .jc-cal-cell.today { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
+        .jc-cal-cell.selected { background: #0d1b2a !important; color: #fff !important; font-weight: 700; }
+        .jc-cal-cell.has-hearing { border-color: #f59e0b; }
+        .jc-cal-cell.selected.has-hearing { border-color: #fbbf24; }
+        .jc-dots { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
+        .jc-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .jc-dot-journal { background: #3b82f6; }
+        .jc-dot-hearing { background: #f59e0b; }
+        .jc-cell-selected .jc-dot-journal { background: #93c5fd; }
+        .jc-cell-selected .jc-dot-hearing { background: #fbbf24; }
+        .jc-legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; }
+        .jc-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .jc-popup { background: #fff; border-radius: 12px; border: 2px solid #f59e0b; padding: 16px; margin-top: 16px; }
+        .jc-popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .jc-popup-title { font-size: 14px; font-weight: 700; color: #92400e; margin: 0; }
+        .jc-popup-close { background: none; border: none; cursor: pointer; font-size: 18px; color: #94a3b8; line-height: 1; }
+        .jc-hearing-item { border-left: 3px solid #f59e0b; padding-left: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #fef3c7; }
+        .jc-hearing-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .jc-hearing-parties { font-weight: 700; font-size: 14px; color: #0d1b2a; margin-bottom: 4px; }
+        .jc-hearing-step { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+        .jc-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .jc-btn-dark { font-size: 12px; color: #fff; background: #0d1b2a; border-radius: 6px; padding: 5px 12px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; }
+        .jc-btn-amber { font-size: 12px; color: #92400e; background: #fef3c7; border-radius: 6px; padding: 5px 12px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; }
+        .jc-reminders-box { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px; margin-top: 16px; }
+        .jc-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .jc-tab { padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; transition: all 0.15s; }
+        .jc-tab.active { background: #0d1b2a; color: #fff; }
+        .jc-tab.inactive { background: #f1f5f9; color: #64748b; }
+        .jc-tab.inactive:hover { background: #e2e8f0; }
+        .jc-badge { background: #f59e0b; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+        .jc-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 14px; }
+        .jc-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; box-sizing: border-box; font-family: inherit; }
+        .jc-input:focus { outline: none; border-color: #94a3b8; }
+        .jc-textarea { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; box-sizing: border-box; font-family: inherit; resize: vertical; }
+        .jc-textarea:focus { outline: none; border-color: #94a3b8; }
+        .jc-select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; box-sizing: border-box; background: #fff; }
+        .jc-save-btn { background: #0d1b2a; color: #fff; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .jc-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .jc-cancel-btn { background: #f1f5f9; color: #64748b; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .jc-hearing-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; }
+        .jc-hearing-card-parties { font-size: 15px; font-weight: 700; color: #0d1b2a; margin: 0 0 6px; }
+        .jc-hearing-card-date { font-size: 13px; color: #64748b; margin-bottom: 6px; }
+        .jc-hearing-card-step { font-size: 13px; color: #374151; margin-bottom: 10px; }
+        .jc-badge-pill { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 3px 9px; display: inline-block; }
+        .jc-diary-badge { font-size: 11px; font-weight: 700; background: #f1f5f9; color: #64748b; border-radius: 6px; padding: 3px 9px; }
+        .jc-msg { background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; color: #166534; font-size: 14px; }
+        .jc-empty { text-align: center; padding: 48px 24px; color: #94a3b8; font-size: 14px; }
+        .jc-set-reminder-btn { background: #0d1b2a; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap; }
+        @media (min-width: 900px) {
+          .jc-body { grid-template-columns: 380px 1fr; }
+          .jc-title { font-size: 30px; }
+        }
+        @media (min-width: 1200px) {
+          .jc-body { grid-template-columns: 420px 1fr; }
+        }
+        @media (max-width: 480px) {
+          .jc-page { padding: 16px 12px; }
+          .jc-cal-cell { padding: 6px 1px; min-height: 38px; font-size: 13px; }
+          .jc-tab { padding: 8px 14px; font-size: 13px; }
+        }
+      `}</style>
+
+      <div className="jc-page">
+        {/* Header */}
+        <div className="jc-header">
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0d1b2a', margin: 0 }}>Journal & Calendar</h1>
-            <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>
-              Daily work log, notes, and meeting reminders
-              {monthHearings.length > 0 && (
-                <span style={{ marginLeft: 12, background: '#fef3c7', color: '#92400e', borderRadius: 12, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
-                  ⚖ {monthHearings.length} hearing{monthHearings.length !== 1 ? 's' : ''} this month
+            <h1 className="jc-title">Journal &amp; Calendar</h1>
+            <p className="jc-subtitle">
+              Daily work log, notes, and court hearing tracker
+              {allUpcomingHearings.length > 0 && (
+                <span style={{ marginLeft: 10, background: '#fef3c7', color: '#92400e', borderRadius: 12, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
+                  ⚖ {allUpcomingHearings.length} upcoming hearing{allUpcomingHearings.length !== 1 ? 's' : ''}
                 </span>
               )}
             </p>
           </div>
-          <button
-            onClick={() => { setShowReminderForm(true); setActiveTab('reminders'); }}
-            style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-          >
+          <button className="jc-set-reminder-btn" onClick={() => { setShowReminderForm(true); setActiveTab('reminders'); }}>
             + Set Reminder
           </button>
         </div>
 
-        {msg && (
-          <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', marginBottom: 20, color: '#166534', fontSize: 14 }}>
-            {msg}
-          </div>
-        )}
+        {msg && <div className="jc-msg">{msg}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24 }}>
-          {/* Left: Calendar */}
-          <div>
-            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 20, marginBottom: 20 }}>
-              {/* Month navigation */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <button onClick={prevMonth} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 16 }}>‹</button>
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#0d1b2a' }}>{MONTHS[currentMonth]} {currentYear}</span>
-                <button onClick={nextMonth} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 16 }}>›</button>
+        <div className="jc-body">
+          {/* LEFT: Calendar column */}
+          <div className="jc-calendar-col">
+            <div className="jc-cal-box">
+              {/* Month nav */}
+              <div className="jc-cal-nav">
+                <button className="jc-cal-nav-btn" onClick={prevMonth}>‹</button>
+                <span className="jc-cal-month">{MONTHS[currentMonth]} {currentYear}</span>
+                <button className="jc-cal-nav-btn" onClick={nextMonth}>›</button>
               </div>
+
               {/* Day headers */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
-                {DAYS.map(d => (
-                  <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', padding: '4px 0' }}>{d}</div>
-                ))}
+              <div className="jc-cal-grid" style={{ marginBottom: 4 }}>
+                {DAYS.map(d => <div key={d} className="jc-cal-dayhead">{d}</div>)}
               </div>
+
               {/* Calendar cells */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+              <div className="jc-cal-grid">
                 {calendarCells.map((day, i) => {
                   const hCount = getHearingCount(day);
+                  const sel = isSelected(day);
+                  const tod = isToday(day);
+                  const hEntry = hasEntry(day);
+                  const hHear = hasHearing(day);
+                  let cls = 'jc-cal-cell';
+                  if (!day) cls += ' empty';
+                  else if (sel) cls += ' selected';
+                  else if (tod) cls += ' today';
+                  if (hHear) cls += ' has-hearing';
+
                   return (
-                    <div
-                      key={i}
-                      onClick={() => handleDayClick(day)}
-                      style={{
-                        textAlign: 'center',
-                        padding: '6px 2px',
-                        borderRadius: 6,
-                        cursor: day ? 'pointer' : 'default',
-                        background: isSelected(day) ? '#0d1b2a' : isToday(day) ? '#dbeafe' : 'transparent',
-                        color: isSelected(day) ? '#fff' : isToday(day) ? '#1d4ed8' : day ? '#374151' : 'transparent',
-                        fontWeight: isToday(day) || isSelected(day) ? 700 : 400,
-                        fontSize: 13,
-                        position: 'relative',
-                        transition: 'background 0.15s',
-                        border: hCount > 0 ? `2px solid ${isSelected(day) ? '#fbbf24' : '#f59e0b'}` : '2px solid transparent',
-                      }}
-                    >
-                      {day}
-                      {(hasEntry(day) || hCount > 0) && (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 2 }}>
-                          {hasEntry(day) && (
-                            <div style={{ width: 4, height: 4, borderRadius: '50%', background: isSelected(day) ? '#fff' : '#3b82f6' }} />
-                          )}
-                          {hCount > 0 && (
-                            <div
-                              onClick={(e) => handleHearingClick(e, day)}
-                              title={`${hCount} hearing${hCount > 1 ? 's' : ''} — click to view`}
-                              style={{ width: 4, height: 4, borderRadius: '50%', background: isSelected(day) ? '#fbbf24' : '#f59e0b', cursor: 'pointer' }}
-                            />
-                          )}
+                    <div key={i} className={cls} onClick={() => handleDayClick(day)}>
+                      <span>{day}</span>
+                      {(hEntry || hHear) && (
+                        <div className="jc-dots">
+                          {hEntry && <div className={`jc-dot jc-dot-journal${sel ? ' jc-cell-selected' : ''}`} style={sel ? { background: '#93c5fd' } : {}} />}
+                          {hHear && <div className={`jc-dot jc-dot-hearing${sel ? ' jc-cell-selected' : ''}`} style={sel ? { background: '#fbbf24' } : {}} />}
                         </div>
                       )}
                     </div>
                   );
                 })}
               </div>
+
               {/* Legend */}
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} /> Journal
+              <div className="jc-legend">
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span className="jc-legend-dot" style={{ background: '#3b82f6' }} /> Journal entry
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} /> Hearing
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span className="jc-legend-dot" style={{ background: '#f59e0b' }} /> Court hearing
                 </span>
               </div>
             </div>
 
-            {/* Hearing popup — shown when a hearing date is clicked */}
+            {/* Hearing popup */}
             {hearingPopup && (
-              <div style={{ background: '#fff', borderRadius: 12, border: '2px solid #f59e0b', padding: 16, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#92400e' }}>
-                    ⚖ {hearingPopup.entries.length} Hearing{hearingPopup.entries.length > 1 ? 's' : ''} — {formatDate(hearingPopup.dateStr)}
-                  </h4>
-                  <button onClick={() => setHearingPopup(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>✕</button>
+              <div className="jc-popup">
+                <div className="jc-popup-header">
+                  <h4 className="jc-popup-title">⚖ {hearingPopup.entries.length} Hearing{hearingPopup.entries.length !== 1 ? 's' : ''} — {formatDate(hearingPopup.dateStr)}</h4>
+                  <button className="jc-popup-close" onClick={() => setHearingPopup(null)}>✕</button>
                 </div>
                 {hearingPopup.entries.map(h => (
-                  <div key={h.id} style={{ borderLeft: '3px solid #f59e0b', paddingLeft: 10, marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #fef3c7' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0d1b2a', marginBottom: 2 }}>
-                      #{h.diary_no} — {h.parties}
-                    </div>
-                    {h.next_step && (
-                      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
-                        <strong>Next Step:</strong> {h.next_step}
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {h.linked_case_id ? (
-                        <Link href={`/cases/${h.linked_case_id}`} style={{ fontSize: 12, color: '#fff', background: '#0d1b2a', borderRadius: 4, padding: '3px 10px', textDecoration: 'none', fontWeight: 600 }}>
-                          Open Case File →
-                        </Link>
-                      ) : null}
-                      <Link href="/case-diary" style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', borderRadius: 4, padding: '3px 10px', textDecoration: 'none', fontWeight: 600 }}>
-                        Case Diary
-                      </Link>
+                  <div key={h.id} className="jc-hearing-item">
+                    <div className="jc-hearing-parties">#{h.diary_no} — {h.parties}</div>
+                    {h.next_step && <div className="jc-hearing-step"><strong>Next Step:</strong> {h.next_step}</div>}
+                    <div className="jc-btn-row">
+                      {h.linked_case_id && (
+                        <Link href={`/cases/${h.linked_case_id}`} className="jc-btn-dark">Open Case File →</Link>
+                      )}
+                      <Link href="/case-diary" className="jc-btn-amber">Case Diary</Link>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Upcoming Reminders sidebar */}
-            <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 20 }}>
+            {/* Upcoming Reminders */}
+            <div className="jc-reminders-box">
               <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0d1b2a', margin: '0 0 12px' }}>Upcoming Reminders</h3>
               {reminders.length === 0 ? (
-                <p style={{ color: '#94a3b8', fontSize: 13 }}>No upcoming reminders.</p>
+                <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>No upcoming reminders.</p>
               ) : (
                 reminders.slice(0, 5).map(r => (
                   <div key={r.id} style={{ borderLeft: '3px solid #f59e0b', paddingLeft: 10, marginBottom: 12 }}>
@@ -478,102 +516,55 @@ export default function Journal() {
             </div>
           </div>
 
-          {/* Right: Journal / Reminders / Hearings panel */}
-          <div>
+          {/* RIGHT: Panel */}
+          <div className="jc-panel-col">
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              <button
-                onClick={() => setActiveTab('journal')}
-                style={{
-                  padding: '8px 20px', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  background: activeTab === 'journal' ? '#0d1b2a' : '#f1f5f9',
-                  color: activeTab === 'journal' ? '#fff' : '#64748b',
-                  border: 'none'
-                }}
-              >
-                Journal
+            <div className="jc-tabs">
+              <button className={`jc-tab ${activeTab === 'journal' ? 'active' : 'inactive'}`} onClick={() => setActiveTab('journal')}>Journal</button>
+              <button className={`jc-tab ${activeTab === 'reminders' ? 'active' : 'inactive'}`} onClick={() => setActiveTab('reminders')}>
+                Reminders {reminders.length > 0 && <span className="jc-badge">{reminders.length}</span>}
               </button>
-              <button
-                onClick={() => setActiveTab('reminders')}
-                style={{
-                  padding: '8px 20px', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  background: activeTab === 'reminders' ? '#0d1b2a' : '#f1f5f9',
-                  color: activeTab === 'reminders' ? '#fff' : '#64748b',
-                  border: 'none'
-                }}
-              >
-                Reminders {reminders.length > 0 && <span style={{ background: '#f59e0b', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, marginLeft: 6 }}>{reminders.length}</span>}
-              </button>
-              <button
-                onClick={() => setActiveTab('hearings')}
-                style={{
-                  padding: '8px 20px', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  background: activeTab === 'hearings' ? '#0d1b2a' : '#f1f5f9',
-                  color: activeTab === 'hearings' ? '#fff' : '#64748b',
-                  border: 'none'
-                }}
-              >
-                Hearings {monthHearings.length > 0 && <span style={{ background: '#f59e0b', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, marginLeft: 6 }}>{monthHearings.length}</span>}
+              <button className={`jc-tab ${activeTab === 'hearings' ? 'active' : 'inactive'}`} onClick={() => setActiveTab('hearings')}>
+                Hearings {allUpcomingHearings.length > 0 && <span className="jc-badge">{allUpcomingHearings.length}</span>}
               </button>
             </div>
 
             {/* JOURNAL TAB */}
             {activeTab === 'journal' && (
               <div>
-                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, marginBottom: 20 }}>
+                <div className="jc-card">
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0d1b2a', margin: '0 0 16px' }}>
                     {editingEntry ? 'Edit Entry — ' : 'New Entry — '}{formatSelectedDate()}
                   </h2>
-                  <input
-                    type="text"
-                    placeholder="Title (optional)"
-                    value={journalTitle}
-                    onChange={e => setJournalTitle(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-                  />
+                  <input className="jc-input" type="text" placeholder="Title (optional)" value={journalTitle} onChange={e => setJournalTitle(e.target.value)} style={{ marginBottom: 12 }} />
                   <textarea
+                    className="jc-textarea"
                     placeholder="Write your journal entry for this day — what you worked on, meetings attended, progress made, notes..."
                     value={journalContent}
                     onChange={e => setJournalContent(e.target.value)}
                     rows={6}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    style={{ marginBottom: 12 }}
                   />
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <select
-                      value={journalCase}
-                      onChange={e => setJournalCase(e.target.value)}
-                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, color: '#374151' }}
-                    >
-                      <option value="">Link to case (optional)</option>
-                      {cases.map(c => <option key={c.id} value={c.id}>{c.client_name} {c.file_number ? `(${c.file_number})` : ''}</option>)}
-                    </select>
-                    <button
-                      onClick={handleSaveJournal}
-                      disabled={savingJournal || !journalContent.trim()}
-                      style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer', fontSize: 14, opacity: (!journalContent.trim() || savingJournal) ? 0.5 : 1 }}
-                    >
+                  <select className="jc-select" value={journalCase} onChange={e => setJournalCase(e.target.value)} style={{ marginBottom: 14 }}>
+                    <option value="">Link to case (optional)</option>
+                    {cases.map(c => <option key={c.id} value={c.id}>{c.client_name}{c.file_number ? ` (${c.file_number})` : ''}</option>)}
+                  </select>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button className="jc-save-btn" onClick={handleSaveJournal} disabled={savingJournal || !journalContent.trim()}>
                       {savingJournal ? 'Saving...' : editingEntry ? 'Update' : 'Save Entry'}
                     </button>
                     {editingEntry && (
-                      <button
-                        onClick={() => { setEditingEntry(null); setJournalTitle(''); setJournalContent(''); setJournalCase(''); }}
-                        style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-                      >
-                        Cancel
-                      </button>
+                      <button className="jc-cancel-btn" onClick={() => { setEditingEntry(null); setJournalTitle(''); setJournalContent(''); setJournalCase(''); }}>Cancel</button>
                     )}
                   </div>
                 </div>
 
-                {/* Entries for selected date */}
                 {selectedEntries.length > 0 && (
                   <div>
-                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12 }}>
-                      Entries for {formatSelectedDate()}
-                    </h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#64748b', marginBottom: 12 }}>Entries for {formatSelectedDate()}</h3>
                     {selectedEntries.map(entry => (
-                      <div key={entry.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 20, marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div key={entry.id} className="jc-card">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                           <div style={{ flex: 1 }}>
                             {entry.title && <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700, color: '#0d1b2a' }}>{entry.title}</h4>}
                             <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.content}</p>
@@ -583,7 +574,7 @@ export default function Journal() {
                               </span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
+                          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                             <button onClick={() => handleEditEntry(entry)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#374151' }}>Edit</button>
                             <button onClick={() => handleDeleteEntry(entry.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>Delete</button>
                           </div>
@@ -594,9 +585,7 @@ export default function Journal() {
                 )}
 
                 {selectedEntries.length === 0 && !loading && (
-                  <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8', fontSize: 14 }}>
-                    No journal entries for this date. Write your first entry above.
-                  </div>
+                  <div className="jc-empty">No journal entries for this date. Write your first entry above.</div>
                 )}
               </div>
             )}
@@ -605,112 +594,62 @@ export default function Journal() {
             {activeTab === 'reminders' && (
               <div>
                 {showReminderForm && (
-                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 24, marginBottom: 20 }}>
+                  <div className="jc-card">
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0d1b2a', margin: '0 0 16px' }}>Set New Reminder</h2>
-                    <input
-                      type="text"
-                      placeholder="Reminder title (e.g. Court hearing — Selim Reza)"
-                      value={reminderTitle}
-                      onChange={e => setReminderTitle(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-                    />
-                    <textarea
-                      placeholder="Description / notes (optional)"
-                      value={reminderDesc}
-                      onChange={e => setReminderDesc(e.target.value)}
-                      rows={3}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                    />
+                    <input className="jc-input" type="text" placeholder="Reminder title (e.g. Court hearing — Selim Reza)" value={reminderTitle} onChange={e => setReminderTitle(e.target.value)} style={{ marginBottom: 12 }} />
+                    <textarea className="jc-textarea" placeholder="Description / notes (optional)" value={reminderDesc} onChange={e => setReminderDesc(e.target.value)} rows={3} style={{ marginBottom: 12 }} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                       <div>
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Date</label>
-                        <input
-                          type="date"
-                          value={reminderDate}
-                          onChange={e => setReminderDate(e.target.value)}
-                          min={new Date().toISOString().split('T')[0]}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
+                        <input className="jc-input" type="date" value={reminderDate} onChange={e => setReminderDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
                       </div>
                       <div>
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Time</label>
-                        <input
-                          type="time"
-                          value={reminderTime}
-                          onChange={e => setReminderTime(e.target.value)}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}
-                        />
+                        <input className="jc-input" type="time" value={reminderTime} onChange={e => setReminderTime(e.target.value)} />
                       </div>
                     </div>
-                    <select
-                      value={reminderCase}
-                      onChange={e => setReminderCase(e.target.value)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-                    >
+                    <select className="jc-select" value={reminderCase} onChange={e => setReminderCase(e.target.value)} style={{ marginBottom: 12 }}>
                       <option value="">Link to case (optional)</option>
-                      {cases.map(c => <option key={c.id} value={c.id}>{c.client_name} {c.file_number ? `(${c.file_number})` : ''}</option>)}
+                      {cases.map(c => <option key={c.id} value={c.id}>{c.client_name}{c.file_number ? ` (${c.file_number})` : ''}</option>)}
                     </select>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#374151', marginBottom: 16, cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={reminderNotifyPartner}
-                        onChange={e => setReminderNotifyPartner(e.target.checked)}
-                        style={{ width: 16, height: 16 }}
-                      />
+                      <input type="checkbox" checked={reminderNotifyPartner} onChange={e => setReminderNotifyPartner(e.target.checked)} style={{ width: 16, height: 16 }} />
                       Also notify partner (info@trfirm.com &amp; info@trwbd.com)
                     </label>
-                    <div style={{ display: 'flex', gap: 12 }}>
-                      <button
-                        onClick={handleSaveReminder}
-                        disabled={savingReminder || !reminderTitle.trim() || !reminderDate}
-                        style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer', fontSize: 14, opacity: (!reminderTitle.trim() || !reminderDate || savingReminder) ? 0.5 : 1 }}
-                      >
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button className="jc-save-btn" onClick={handleSaveReminder} disabled={savingReminder || !reminderTitle.trim() || !reminderDate}>
                         {savingReminder ? 'Setting...' : 'Set Reminder & Notify'}
                       </button>
-                      <button
-                        onClick={() => setShowReminderForm(false)}
-                        style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-                      >
-                        Cancel
-                      </button>
+                      <button className="jc-cancel-btn" onClick={() => setShowReminderForm(false)}>Cancel</button>
                     </div>
                   </div>
                 )}
 
                 {!showReminderForm && (
-                  <button
-                    onClick={() => setShowReminderForm(true)}
-                    style={{ background: '#fff', color: '#0d1b2a', border: '2px dashed #cbd5e1', borderRadius: 12, padding: '14px 24px', fontWeight: 600, cursor: 'pointer', fontSize: 14, width: '100%', marginBottom: 20 }}
-                  >
+                  <button onClick={() => setShowReminderForm(true)} style={{ background: '#fff', color: '#0d1b2a', border: '2px dashed #cbd5e1', borderRadius: 12, padding: '14px 24px', fontWeight: 600, cursor: 'pointer', fontSize: 14, width: '100%', marginBottom: 20 }}>
                     + Add New Reminder
                   </button>
                 )}
 
                 {reminders.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8', fontSize: 14 }}>
-                    No upcoming reminders. Set one above to get email notifications.
-                  </div>
+                  <div className="jc-empty">No upcoming reminders. Set one above to get email notifications.</div>
                 ) : (
                   reminders.map(r => {
                     const dt = new Date(r.reminder_datetime);
                     const isOverdue = dt < new Date();
                     return (
-                      <div key={r.id} style={{ background: '#fff', borderRadius: 12, border: `1px solid ${isOverdue ? '#fca5a5' : '#e2e8f0'}`, padding: 20, marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div key={r.id} className="jc-card" style={{ borderColor: isOverdue ? '#fca5a5' : '#e2e8f0' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                               <h4 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: isOverdue ? '#dc2626' : '#0d1b2a' }}>{r.title}</h4>
                               {isOverdue && <span style={{ fontSize: 11, background: '#fef2f2', color: '#dc2626', borderRadius: 4, padding: '2px 6px' }}>Overdue</span>}
                             </div>
                             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>{formatDateTime(r.reminder_datetime)}</div>
                             {r.description && <p style={{ margin: '4px 0', fontSize: 13, color: '#374151' }}>{r.description}</p>}
-                            {r.cases && (
-                              <span style={{ display: 'inline-block', fontSize: 12, color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '2px 8px' }}>
-                                {r.cases.client_name}
-                              </span>
-                            )}
+                            {r.cases && <span style={{ display: 'inline-block', fontSize: 12, color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '2px 8px' }}>{r.cases.client_name}</span>}
                           </div>
-                          <button onClick={() => handleDeleteReminder(r.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#dc2626', marginLeft: 12 }}>Delete</button>
+                          <button onClick={() => handleDeleteReminder(r.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#dc2626', flexShrink: 0 }}>Delete</button>
                         </div>
                       </div>
                     );
@@ -719,12 +658,12 @@ export default function Journal() {
               </div>
             )}
 
-            {/* HEARINGS TAB — full list of all hearings this month */}
+            {/* HEARINGS TAB */}
             {activeTab === 'hearings' && (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0d1b2a', margin: 0 }}>
-                    Court Hearings — {MONTHS[currentMonth]} {currentYear}
+                    All Upcoming Court Hearings
                   </h2>
                   <Link href="/case-diary" style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
                     Full Case Diary →
@@ -733,54 +672,29 @@ export default function Journal() {
 
                 {loading && <div style={{ color: '#94a3b8', fontSize: 14, padding: 24 }}>Loading hearings...</div>}
 
-                {!loading && monthHearings.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '48px', color: '#94a3b8', fontSize: 14 }}>
-                    No court hearings scheduled for {MONTHS[currentMonth]} {currentYear}.
-                  </div>
+                {!loading && allUpcomingHearings.length === 0 && (
+                  <div className="jc-empty">No upcoming court hearings found.</div>
                 )}
 
-                {!loading && monthHearings.map(h => {
-                  const du = daysUntil(h.next_date);
-                  const uc = urgencyColor(h.next_date);
+                {!loading && allUpcomingHearings.map(h => {
+                  const badge = urgencyBadge(h.next_date);
+                  const bc = borderColor(h.next_date);
                   return (
-                    <div key={h.id} style={{ background: '#fff', borderRadius: 12, border: `1px solid #e2e8f0`, borderLeft: `4px solid ${uc}`, padding: 20, marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#64748b', borderRadius: 4, padding: '2px 8px' }}>
-                              Diary #{h.diary_no}
-                            </span>
-                            {du !== null && du >= 0 && (
-                              <span style={{ fontSize: 11, fontWeight: 700, background: uc + '20', color: uc, borderRadius: 4, padding: '2px 8px' }}>
-                                {du === 0 ? 'TODAY' : du === 1 ? 'Tomorrow' : `In ${du} days`}
-                              </span>
-                            )}
-                            {du !== null && du < 0 && (
-                              <span style={{ fontSize: 11, background: '#f1f5f9', color: '#94a3b8', borderRadius: 4, padding: '2px 8px' }}>
-                                {Math.abs(du)} days ago
-                              </span>
-                            )}
-                          </div>
-                          <h4 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#0d1b2a' }}>{h.parties}</h4>
-                          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>
-                            📅 <strong>Hearing Date:</strong> {formatDate(h.next_date)}
-                          </div>
-                          {h.next_step && (
-                            <div style={{ fontSize: 13, color: '#374151', marginBottom: 8 }}>
-                              <strong>Next Step:</strong> {h.next_step}
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            {h.linked_case_id && (
-                              <Link href={`/cases/${h.linked_case_id}`} style={{ fontSize: 12, color: '#fff', background: '#0d1b2a', borderRadius: 4, padding: '4px 12px', textDecoration: 'none', fontWeight: 600 }}>
-                                Open Case File →
-                              </Link>
-                            )}
-                            <Link href="/case-diary" style={{ fontSize: 12, color: '#92400e', background: '#fef3c7', borderRadius: 4, padding: '4px 12px', textDecoration: 'none', fontWeight: 600 }}>
-                              Case Diary
-                            </Link>
-                          </div>
-                        </div>
+                    <div key={h.id} className="jc-hearing-card" style={{ borderLeft: `4px solid ${bc}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                        <span className="jc-diary-badge">Diary #{h.diary_no}</span>
+                        {badge && (
+                          <span className="jc-badge-pill" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
+                        )}
+                      </div>
+                      <h4 className="jc-hearing-card-parties">{h.parties}</h4>
+                      <div className="jc-hearing-card-date">📅 <strong>Hearing:</strong> {formatDate(h.next_date)}</div>
+                      {h.next_step && <div className="jc-hearing-card-step"><strong>Next Step:</strong> {h.next_step}</div>}
+                      <div className="jc-btn-row">
+                        {h.linked_case_id && (
+                          <Link href={`/cases/${h.linked_case_id}`} className="jc-btn-dark">Open Case File →</Link>
+                        )}
+                        <Link href="/case-diary" className="jc-btn-amber">Case Diary</Link>
                       </div>
                     </div>
                   );
