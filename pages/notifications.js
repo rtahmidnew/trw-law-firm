@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'hearing' | 'enquiry'
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     fetchNotifications();
@@ -56,13 +58,13 @@ export default function NotificationsPage() {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
-  function getNotificationStyle(type) {
-    if (type === 'hearing_reminder_1d') return { border: '#dc2626', bg: '#fef2f2', icon: '🔴', label: 'Tomorrow' };
-    if (type === 'hearing_reminder_3d') return { border: '#f59e0b', bg: '#fffbeb', icon: '🟡', label: 'In 3 Days' };
-    if (type === 'hearing_reminder_7d') return { border: '#3b82f6', bg: '#eff6ff', icon: '🔵', label: 'In 7 Days' };
-    if (type === 'hearing_reminder') return { border: '#dc2626', bg: '#fef2f2', icon: '⚖', label: 'Hearing' };
-    if (type === 'new_enquiry') return { border: '#10b981', bg: '#f0fdf4', icon: '📧', label: 'New Enquiry' };
-    return { border: '#6b7280', bg: '#f9fafb', icon: '🔔', label: 'Notification' };
+  function getTypeLabel(type) {
+    if (type === 'hearing_reminder_1d') return 'Tomorrow';
+    if (type === 'hearing_reminder_3d') return 'In 3 Days';
+    if (type === 'hearing_reminder_7d') return 'In 7 Days';
+    if (type === 'hearing_reminder') return 'Hearing';
+    if (type === 'new_enquiry') return 'New Enquiry';
+    return 'Notification';
   }
 
   const filtered = notifications.filter(n => {
@@ -77,27 +79,54 @@ export default function NotificationsPage() {
   return (
     <Layout>
       <Head><title>Notifications — TRW Law Firm</title></Head>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+      <div style={{ maxWidth: 680, margin: '0 auto' }}>
+
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0d1b2a', margin: 0 }}>Notifications</h1>
-            <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>
-              {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` : 'All caught up'}
-            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0d1b2a', margin: 0, letterSpacing: '-0.02em' }}>
+              Notifications
+            </h1>
+            {unreadCount > 0 && (
+              <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 0' }}>
+                {unreadCount} unread
+              </p>
+            )}
           </div>
-          {unreadCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                style={{
+                  background: 'none', color: '#0d1b2a', border: '1px solid #d1d5db',
+                  borderRadius: 7, padding: '7px 14px', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', letterSpacing: '0.01em'
+                }}
+              >
+                Mark all read
+              </button>
+            )}
+            {/* Close / back button */}
             <button
-              onClick={markAllAsRead}
-              style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              onClick={() => router.back()}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 34, height: 34, borderRadius: 7,
+                background: 'none', border: '1px solid #d1d5db',
+                cursor: 'pointer', color: '#374151'
+              }}
+              title="Close"
             >
-              Mark all as read
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="1" y1="1" x2="13" y2="13"/>
+                <line x1="13" y1="1" x2="1" y2="13"/>
+              </svg>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Filter tabs */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 0 }}>
+        <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1px solid #e5e7eb' }}>
           {[
             { key: 'all', label: 'All' },
             { key: 'unread', label: `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
@@ -108,9 +137,10 @@ export default function NotificationsPage() {
               key={tab.key}
               onClick={() => setFilter(tab.key)}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer', padding: '8px 14px',
-                fontSize: 13, fontWeight: filter === tab.key ? 700 : 500,
-                color: filter === tab.key ? '#0d1b2a' : '#64748b',
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '8px 16px', fontSize: 13,
+                fontWeight: filter === tab.key ? 700 : 400,
+                color: filter === tab.key ? '#0d1b2a' : '#9ca3af',
                 borderBottom: filter === tab.key ? '2px solid #0d1b2a' : '2px solid transparent',
                 marginBottom: -1
               }}
@@ -122,97 +152,107 @@ export default function NotificationsPage() {
 
         {/* Notification list */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>Loading notifications...</div>
+          <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af', fontSize: 14 }}>Loading…</div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-            <p style={{ margin: 0, fontSize: 15 }}>No notifications{filter !== 'all' ? ' in this category' : ''}</p>
+          <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <p style={{ margin: 0, fontSize: 14 }}>No notifications{filter !== 'all' ? ' here' : ''}</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(n => {
-              const style = getNotificationStyle(n.type);
-              return (
-                <div
-                  key={n.id}
-                  style={{
-                    background: n.is_read ? '#fff' : style.bg,
-                    border: `1px solid ${n.is_read ? '#e2e8f0' : style.border}30`,
-                    borderLeft: `4px solid ${n.is_read ? '#e2e8f0' : style.border}`,
-                    borderRadius: 10,
-                    padding: '14px 16px',
-                    display: 'flex',
-                    gap: 14,
-                    alignItems: 'flex-start',
-                    cursor: n.is_read ? 'default' : 'pointer',
-                    transition: 'box-shadow 0.15s',
-                  }}
-                  onClick={() => !n.is_read && markAsRead(n.id)}
-                >
-                  {/* Icon */}
-                  <div style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>{style.icon}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {filtered.map((n, i) => (
+              <div
+                key={n.id}
+                style={{
+                  background: n.is_read ? '#fff' : '#fafafa',
+                  borderTop: i === 0 ? '1px solid #e5e7eb' : 'none',
+                  borderBottom: '1px solid #e5e7eb',
+                  padding: '16px 0',
+                  display: 'flex',
+                  gap: 14,
+                  alignItems: 'flex-start',
+                  cursor: n.is_read ? 'default' : 'pointer',
+                }}
+                onClick={() => !n.is_read && markAsRead(n.id)}
+              >
+                {/* Unread dot */}
+                <div style={{ width: 20, flexShrink: 0, paddingTop: 4, display: 'flex', justifyContent: 'center' }}>
+                  {!n.is_read && (
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#0d1b2a', display: 'inline-block', marginTop: 2 }} />
+                  )}
+                </div>
 
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                        color: n.is_read ? '#94a3b8' : style.border,
-                        background: `${style.border}15`, padding: '2px 8px', borderRadius: 4
-                      }}>
-                        {style.label}
-                      </span>
-                      {!n.is_read && (
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: style.border, display: 'inline-block' }} />
-                      )}
-                    </div>
-                    <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: n.is_read ? 500 : 700, color: '#0d1b2a', lineHeight: 1.4 }}>
-                      {n.title}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
-                      {n.message}
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(n.created_at)}</span>
-                      {n.linked_case_id && (
-                        <Link href={`/cases/${n.linked_case_id}`}>
-                          <span style={{ fontSize: 11, color: '#0d1b2a', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                            Open Case →
-                          </span>
-                        </Link>
-                      )}
-                      {n.type?.includes('hearing') && (
-                        <Link href="/case-diary">
-                          <span style={{ fontSize: 11, color: '#0d1b2a', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
-                            View Diary →
-                          </span>
-                        </Link>
-                      )}
-                    </div>
+                {/* Content */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ marginBottom: 3 }}>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                      letterSpacing: '0.08em', color: '#9ca3af'
+                    }}>
+                      {getTypeLabel(n.type)}
+                    </span>
                   </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                  <p style={{
+                    margin: '0 0 4px', fontSize: 14,
+                    fontWeight: n.is_read ? 400 : 600,
+                    color: '#0d1b2a', lineHeight: 1.45
+                  }}>
+                    {n.title}
+                  </p>
+                  <p style={{ margin: '0 0 8px', fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
+                    {n.message}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, color: '#9ca3af' }}>{formatDate(n.created_at)}</span>
+                    {n.linked_case_id && (
+                      <Link href={`/cases/${n.linked_case_id}`}>
+                        <span style={{ fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                          Open Case →
+                        </span>
+                      </Link>
+                    )}
+                    {n.type?.includes('hearing') && (
+                      <Link href="/case-diary">
+                        <span style={{ fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+                          View Diary →
+                        </span>
+                      </Link>
+                    )}
                     {!n.is_read && (
                       <button
                         onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
-                        title="Mark as read"
-                        style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', color: '#64748b', whiteSpace: 'nowrap' }}
+                        style={{
+                          background: 'none', border: 'none', padding: 0,
+                          fontSize: 12, color: '#9ca3af', cursor: 'pointer',
+                          textDecoration: 'underline', textUnderlineOffset: 2
+                        }}
                       >
-                        ✓ Read
+                        Mark read
                       </button>
                     )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
-                      title="Delete"
-                      style={{ background: 'none', border: '1px solid #fecaca', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', color: '#dc2626' }}
-                    >
-                      ✕
-                    </button>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Delete */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
+                  title="Dismiss"
+                  style={{
+                    background: 'none', border: 'none', padding: '2px 4px',
+                    cursor: 'pointer', color: '#d1d5db', flexShrink: 0,
+                    lineHeight: 1, fontSize: 16, marginTop: 2
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="13" y2="13"/>
+                    <line x1="13" y1="1" x2="1" y2="13"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
