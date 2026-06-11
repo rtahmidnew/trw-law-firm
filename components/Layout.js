@@ -40,6 +40,7 @@ export default function Layout({ children }) {
   const partnerLinks = [
     { href: '/admin', label: 'Overview', exact: true },
     { href: '/admin/all-cases', label: 'All Cases', startsWith: '/admin/all' },
+    { href: '/case-diary', label: 'Case Diary', exact: true },
     { href: '/instructions', label: 'Instructions', exact: true },
     { href: '/journal', label: 'Journal', exact: true },
   ]
@@ -48,6 +49,7 @@ export default function Layout({ children }) {
     { href: '/dashboard', label: 'Dashboard', exact: true },
     { href: '/cases?assigned=me', label: 'My Cases', matchFn: () => router.pathname === '/cases' && router.query.assigned === 'me' },
     { href: '/cases', label: 'All Cases', matchFn: () => router.pathname === '/cases' && !router.query.assigned },
+    { href: '/case-diary', label: 'Case Diary', exact: true },
     { href: '/instructions', label: 'Instructions', exact: true },
     { href: '/journal', label: 'Journal', exact: true },
     { href: '/cases/new', label: '+ New Case', exact: true },
