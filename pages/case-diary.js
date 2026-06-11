@@ -1,8 +1,63 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { supabase } from '../lib/supabase';
+
+const STATUS_OPTIONS = ['Active', 'Disposed', 'Stayed', 'Adjourned'];
+
+// Monochrome calendar SVG icon — no emoji, no color
+const CalendarIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const EditIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+const CheckIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const XIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const TrashIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+  </svg>
+);
+
+const PlusIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const LinkIcon = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
 
 export default function CaseDiary() {
   const router = useRouter();
@@ -12,22 +67,22 @@ export default function CaseDiary() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('Active');
-  const [message, setMessage] = useState('');
+  const [toast, setToast] = useState('');
 
-  // Edit/Add form state
-  const [showForm, setShowForm] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null);
-  const [formData, setFormData] = useState({
-    diary_no: '',
-    parties: '',
-    case_no: '',
-    court: '',
-    previous_dates: '',
-    next_date: '',
-    next_step: '',
-    status: 'Active'
-  });
+  // Inline editing — one entry at a time
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
+
+  // Add new entry form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState({
+    diary_no: '', parties: '', case_no: '', court: '',
+    previous_dates: '', next_date: '', next_step: '', status: 'Active'
+  });
+  const [addSaving, setAddSaving] = useState(false);
+
+  const addFormRef = useRef(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -55,18 +110,28 @@ export default function CaseDiary() {
     setLoading(false);
   }, [user]);
 
-  const isPartner = profile?.role === 'partner';
+  const canEdit = profile?.role === 'partner' || profile?.role === 'associate';
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
 
   const filtered = entries.filter(e => {
     const matchStatus = filterStatus === 'All' || e.status === filterStatus;
     const q = search.toLowerCase();
-    const matchSearch = !q || e.parties?.toLowerCase().includes(q) || e.case_no?.toLowerCase().includes(q) || e.court?.toLowerCase().includes(q) || e.next_step?.toLowerCase().includes(q);
+    const matchSearch = !q ||
+      (e.parties || '').toLowerCase().includes(q) ||
+      (e.case_no || '').toLowerCase().includes(q) ||
+      (e.court || '').toLowerCase().includes(q) ||
+      (e.next_step || '').toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
 
-  const handleEdit = (entry) => {
-    setEditingEntry(entry);
-    setFormData({
+  // Start inline edit
+  const startEdit = (entry) => {
+    setEditingId(entry.id);
+    setEditForm({
       diary_no: entry.diary_no,
       parties: entry.parties || '',
       case_no: entry.case_no || '',
@@ -76,344 +141,496 @@ export default function CaseDiary() {
       next_step: entry.next_step || '',
       status: entry.status || 'Active'
     });
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAdd = () => {
-    setEditingEntry(null);
-    const maxNo = entries.length > 0 ? Math.max(...entries.map(e => e.diary_no || 0)) + 1 : 1;
-    setFormData({ diary_no: maxNo, parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active' });
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({});
   };
 
-  const handleSave = async () => {
-    if (!formData.parties.trim()) return;
+  const saveEdit = async (entryId) => {
     setSaving(true);
     const payload = {
-      diary_no: parseInt(formData.diary_no) || 0,
-      parties: formData.parties.trim(),
-      case_no: formData.case_no.trim() || null,
-      court: formData.court.trim() || null,
-      previous_dates: formData.previous_dates.trim() || null,
-      next_date: formData.next_date || null,
-      next_step: formData.next_step.trim() || null,
-      status: formData.status,
+      diary_no: parseInt(editForm.diary_no) || 0,
+      parties: editForm.parties.trim(),
+      case_no: editForm.case_no.trim() || null,
+      court: editForm.court.trim() || null,
+      previous_dates: editForm.previous_dates.trim() || null,
+      next_date: editForm.next_date || null,
+      next_step: editForm.next_step.trim() || null,
+      status: editForm.status,
       updated_at: new Date().toISOString()
     };
-    if (editingEntry) {
-      await supabase.from('case_diary').update(payload).eq('id', editingEntry.id);
-      setMessage('Entry updated.');
-    } else {
-      await supabase.from('case_diary').insert(payload);
-      setMessage('Entry added.');
-    }
+    const { error } = await supabase.from('case_diary').update(payload).eq('id', entryId);
     setSaving(false);
-    setShowForm(false);
-    setEditingEntry(null);
-    fetchEntries();
-    setTimeout(() => setMessage(''), 3000);
+    if (!error) {
+      setEditingId(null);
+      setEditForm({});
+      showToast('Entry updated.');
+      fetchEntries();
+    }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this diary entry?')) return;
+    if (!confirm('Delete this diary entry? This cannot be undone.')) return;
     await supabase.from('case_diary').delete().eq('id', id);
+    showToast('Entry deleted.');
+    fetchEntries();
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.parties.trim()) return;
+    setAddSaving(true);
+    const maxNo = entries.length > 0 ? Math.max(...entries.map(e => e.diary_no || 0)) + 1 : 1;
+    const payload = {
+      diary_no: parseInt(addForm.diary_no) || maxNo,
+      parties: addForm.parties.trim(),
+      case_no: addForm.case_no.trim() || null,
+      court: addForm.court.trim() || null,
+      previous_dates: addForm.previous_dates.trim() || null,
+      next_date: addForm.next_date || null,
+      next_step: addForm.next_step.trim() || null,
+      status: addForm.status
+    };
+    await supabase.from('case_diary').insert(payload);
+    setAddSaving(false);
+    setShowAddForm(false);
+    setAddForm({ diary_no: '', parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active' });
+    showToast('New entry added.');
     fetchEntries();
   };
 
   const formatDate = (d) => {
-    if (!d) return '—';
+    if (!d) return null;
     const dt = new Date(d + 'T12:00:00');
     return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const getDaysUntil = (dateStr) => {
     if (!dateStr) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     const next = new Date(dateStr + 'T00:00:00');
-    const diff = Math.round((next - today) / (1000 * 60 * 60 * 24));
-    return diff;
+    return Math.round((next - today) / (1000 * 60 * 60 * 24));
   };
 
-  const getUrgencyColor = (days) => {
-    if (days === null) return '#e2e8f0';
-    if (days < 0) return '#fca5a5';
-    if (days <= 3) return '#fbbf24';
-    if (days <= 7) return '#86efac';
-    return '#e2e8f0';
+  const getUrgencyStyle = (days) => {
+    if (days === null) return { bg: 'transparent', color: '#374151', border: '#e2e8f0' };
+    if (days < 0) return { bg: '#fef2f2', color: '#991b1b', border: '#fca5a5' };
+    if (days <= 3) return { bg: '#fff7ed', color: '#9a3412', border: '#fdba74' };
+    if (days <= 7) return { bg: '#fefce8', color: '#713f12', border: '#fde047' };
+    return { bg: '#f0fdf4', color: '#14532d', border: '#86efac' };
+  };
+
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case 'Active': return { bg: '#f0fdf4', color: '#15803d', border: '#86efac' };
+      case 'Disposed': return { bg: '#f8fafc', color: '#475569', border: '#cbd5e1' };
+      case 'Stayed': return { bg: '#fefce8', color: '#713f12', border: '#fde047' };
+      case 'Adjourned': return { bg: '#eff6ff', color: '#1e40af', border: '#93c5fd' };
+      default: return { bg: '#f8fafc', color: '#475569', border: '#cbd5e1' };
+    }
   };
 
   if (!user) return null;
 
+  const inputStyle = {
+    width: '100%', padding: '7px 10px', borderRadius: 6,
+    border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box',
+    fontFamily: 'inherit', background: '#fff', color: '#0d1b2a',
+    outline: 'none', lineHeight: 1.4
+  };
+
+  const fieldLabel = {
+    display: 'block', fontSize: 11, fontWeight: 600,
+    color: '#94a3b8', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.05em'
+  };
+
   return (
     <Layout>
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px' }}>
+      <style>{`
+        .cd-page { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+        .cd-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+        .cd-title { font-size: 26px; font-weight: 700; color: #0d1b2a; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .cd-subtitle { color: #64748b; margin-top: 4px; font-size: 13px; }
+        .cd-add-btn { display: flex; align-items: center; gap: 7px; background: #0d1b2a; color: #fff; border: none; border-radius: 8px; padding: '10px 18px'; font-weight: 600; cursor: pointer; font-size: 13px; padding: 10px 18px; white-space: nowrap; }
+        .cd-add-btn:hover { background: #1e293b; }
+        .cd-filters { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+        .cd-search { flex: 1; min-width: 200px; padding: 9px 13px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; outline: none; }
+        .cd-search:focus { border-color: #94a3b8; }
+        .cd-filter-btn { padding: 7px 14px; border-radius: 7px; font-weight: 600; font-size: 12px; cursor: pointer; border: 1px solid transparent; transition: all 0.12s; }
+        .cd-filter-btn.active { background: #0d1b2a; color: #fff; border-color: #0d1b2a; }
+        .cd-filter-btn.inactive { background: #f8fafc; color: #64748b; border-color: #e2e8f0; }
+        .cd-filter-btn.inactive:hover { background: #f1f5f9; }
+        .cd-legend { display: flex; gap: 14px; margin-bottom: 18px; font-size: 11px; color: #94a3b8; flex-wrap: wrap; }
+        .cd-legend-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+        .cd-toast { position: fixed; bottom: 24px; right: 24px; background: #0d1b2a; color: #fff; border-radius: 8px; padding: 12px 20px; font-size: 13px; font-weight: 600; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        
+        /* Entry card */
+        .cd-entry { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 10px; overflow: hidden; transition: box-shadow 0.15s; }
+        .cd-entry:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+        .cd-entry.editing { border-color: #0d1b2a; box-shadow: 0 0 0 2px rgba(13,27,42,0.08); }
+        
+        /* View mode */
+        .cd-view { padding: 16px 18px; }
+        .cd-view-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+        .cd-no { font-size: 11px; font-weight: 700; color: #94a3b8; background: #f8fafc; border-radius: 5px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+        .cd-parties { font-size: 15px; font-weight: 700; color: #0d1b2a; flex: 1; line-height: 1.4; }
+        .cd-parties-link { color: #0d1b2a; text-decoration: none; }
+        .cd-parties-link:hover { text-decoration: underline; }
+        .cd-status-badge { font-size: 11px; font-weight: 700; border-radius: 5px; padding: 3px 9px; white-space: nowrap; flex-shrink: 0; border: 1px solid; }
+        .cd-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .cd-btn-icon { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 8px; cursor: pointer; color: #64748b; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; transition: all 0.12s; }
+        .cd-btn-icon:hover { background: #f1f5f9; color: #0d1b2a; }
+        .cd-btn-icon.danger:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+        .cd-view-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+        .cd-field { font-size: 12px; color: #374151; }
+        .cd-field-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
+        .cd-field-value { color: #374151; }
+        .cd-field-value.mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+        .cd-next-date { display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; padding: 4px 10px; font-weight: 700; font-size: 12px; border: 1px solid; }
+        .cd-prev-dates { font-size: 11px; color: #64748b; line-height: 1.5; word-break: break-word; }
+        .cd-case-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #0d1b2a; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 10px; text-decoration: none; font-weight: 600; margin-top: 8px; }
+        .cd-case-link:hover { background: #0d1b2a; color: #fff; border-color: #0d1b2a; }
+        
+        /* Edit mode */
+        .cd-edit { padding: 16px 18px; background: #fafafa; }
+        .cd-edit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px; }
+        .cd-edit-full { grid-column: 1 / -1; }
+        .cd-edit-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .cd-save-btn { display: flex; align-items: center; gap: 6px; background: #0d1b2a; color: #fff; border: none; border-radius: 7px; padding: 8px 18px; font-weight: 600; cursor: pointer; font-size: 13px; }
+        .cd-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .cd-cancel-btn { display: flex; align-items: center; gap: 6px; background: #f1f5f9; color: #64748b; border: none; border-radius: 7px; padding: 8px 14px; font-weight: 600; cursor: pointer; font-size: 13px; }
+        .cd-cancel-btn:hover { background: #e2e8f0; }
+        
+        /* Add form */
+        .cd-add-form { background: #fff; border-radius: 12px; border: 2px solid #0d1b2a; padding: 20px; margin-bottom: 18px; }
+        .cd-add-form-title { font-size: 15px; font-weight: 700; color: #0d1b2a; margin: 0 0 16px; display: flex; align-items: center; gap: 8px; }
+        
+        @media (max-width: 640px) {
+          .cd-page { padding: 16px 12px; }
+          .cd-title { font-size: 22px; }
+          .cd-view-fields { grid-template-columns: 1fr; }
+          .cd-edit-grid { grid-template-columns: 1fr; }
+          .cd-view-top { flex-wrap: wrap; }
+          .cd-actions { margin-left: auto; }
+        }
+        @media (min-width: 641px) {
+          .cd-view-fields { grid-template-columns: 1fr 1fr 1fr; }
+        }
+        @media (min-width: 900px) {
+          .cd-view-fields { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        }
+      `}</style>
+
+      <div className="cd-page">
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+        <div className="cd-header">
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0d1b2a', margin: 0 }}>Case Diary</h1>
-            <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>
+            <h1 className="cd-title">
+              <CalendarIcon size={22} />
+              Case Diary
+            </h1>
+            <p className="cd-subtitle">
               {filtered.length} of {entries.length} entries · Hearing dates marked on calendar
             </p>
           </div>
-          {isPartner && (
-            <button
-              onClick={handleAdd}
-              style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-            >
-              + Add Entry
+          {canEdit && (
+            <button className="cd-add-btn" onClick={() => {
+              setShowAddForm(true);
+              setTimeout(() => addFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            }}>
+              <PlusIcon size={14} /> Add Entry
             </button>
           )}
         </div>
 
-        {message && (
-          <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 8, padding: '10px 16px', marginBottom: 20, color: '#166534', fontSize: 14 }}>
-            {message}
-          </div>
-        )}
-
-        {/* Add/Edit Form */}
-        {showForm && isPartner && (
-          <div style={{ background: '#fff', borderRadius: 12, border: '2px solid #0d1b2a', padding: 24, marginBottom: 24 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0d1b2a', margin: '0 0 20px' }}>
-              {editingEntry ? `Edit Entry #${editingEntry.diary_no}` : 'Add New Diary Entry'}
+        {/* Add New Entry Form */}
+        {showAddForm && canEdit && (
+          <div className="cd-add-form" ref={addFormRef}>
+            <h2 className="cd-add-form-title">
+              <PlusIcon size={15} /> New Diary Entry
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12 }}>
+            <div className="cd-edit-grid">
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Diary No.</label>
-                <input type="number" value={formData.diary_no} onChange={e => setFormData(f => ({ ...f, diary_no: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={fieldLabel}>Diary No.</label>
+                <input style={inputStyle} type="number" value={addForm.diary_no}
+                  placeholder={entries.length > 0 ? String(Math.max(...entries.map(e => e.diary_no || 0)) + 1) : '1'}
+                  onChange={e => setAddForm(f => ({ ...f, diary_no: e.target.value }))} />
               </div>
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Parties *</label>
-                <input type="text" value={formData.parties} onChange={e => setFormData(f => ({ ...f, parties: e.target.value }))}
-                  placeholder="e.g. Selim Reza vs. State" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Case No.</label>
-                <input type="text" value={formData.case_no} onChange={e => setFormData(f => ({ ...f, case_no: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+              <div className="cd-edit-full">
+                <label style={fieldLabel}>Parties *</label>
+                <input style={inputStyle} type="text" value={addForm.parties}
+                  placeholder="e.g. Selim Reza VS State"
+                  onChange={e => setAddForm(f => ({ ...f, parties: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Court</label>
-                <input type="text" value={formData.court} onChange={e => setFormData(f => ({ ...f, court: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={fieldLabel}>Case No.</label>
+                <input style={inputStyle} type="text" value={addForm.case_no}
+                  placeholder="e.g. CR Case No. 123/2024"
+                  onChange={e => setAddForm(f => ({ ...f, case_no: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Previous Dates</label>
-                <input type="text" value={formData.previous_dates} onChange={e => setFormData(f => ({ ...f, previous_dates: e.target.value }))}
-                  placeholder="e.g. 12.03.25, 15.04.25" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={fieldLabel}>Court</label>
+                <input style={inputStyle} type="text" value={addForm.court}
+                  placeholder="e.g. 1st Joint Session Court"
+                  onChange={e => setAddForm(f => ({ ...f, court: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Next Date</label>
-                <input type="date" value={formData.next_date} onChange={e => setFormData(f => ({ ...f, next_date: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={fieldLabel}>Next Date</label>
+                <input style={inputStyle} type="date" value={addForm.next_date}
+                  onChange={e => setAddForm(f => ({ ...f, next_date: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Next Step</label>
-                <input type="text" value={formData.next_step} onChange={e => setFormData(f => ({ ...f, next_step: e.target.value }))}
-                  placeholder="e.g. Framing of Charge" style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={fieldLabel}>Next Step</label>
+                <input style={inputStyle} type="text" value={addForm.next_step}
+                  placeholder="e.g. Framing of Charge"
+                  onChange={e => setAddForm(f => ({ ...f, next_step: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Status</label>
-                <select value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' }}>
-                  <option>Active</option>
-                  <option>Disposed</option>
-                  <option>Stayed</option>
-                  <option>Adjourned</option>
+                <label style={fieldLabel}>Status</label>
+                <select style={inputStyle} value={addForm.status}
+                  onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))}>
+                  {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
+              <div className="cd-edit-full">
+                <label style={fieldLabel}>Previous Dates</label>
+                <input style={inputStyle} type="text" value={addForm.previous_dates}
+                  placeholder="e.g. 12.03.2025, 15.04.2025, 20.05.2025"
+                  onChange={e => setAddForm(f => ({ ...f, previous_dates: e.target.value }))} />
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={handleSave} disabled={saving || !formData.parties.trim()}
-                style={{ background: '#0d1b2a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer', fontSize: 14, opacity: (!formData.parties.trim() || saving) ? 0.5 : 1 }}>
-                {saving ? 'Saving...' : editingEntry ? 'Update Entry' : 'Add Entry'}
+            <div className="cd-edit-actions">
+              <button className="cd-save-btn" onClick={handleAdd} disabled={addSaving || !addForm.parties.trim()}>
+                <CheckIcon size={13} /> {addSaving ? 'Saving...' : 'Add Entry'}
               </button>
-              <button onClick={() => { setShowForm(false); setEditingEntry(null); }}
-                style={{ background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 8, padding: '10px 16px', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
-                Cancel
+              <button className="cd-cancel-btn" onClick={() => setShowAddForm(false)}>
+                <XIcon size={13} /> Cancel
               </button>
             </div>
           </div>
         )}
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="Search parties, case no., court, next step..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ flex: 1, minWidth: 220, padding: '10px 14px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14 }}
-          />
+        <div className="cd-filters">
+          <input className="cd-search" type="text" placeholder="Search parties, case no., court, next step..."
+            value={search} onChange={e => setSearch(e.target.value)} />
           {['All', 'Active', 'Disposed', 'Stayed', 'Adjourned'].map(s => (
-            <button key={s} onClick={() => setFilterStatus(s)}
-              style={{
-                padding: '8px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', border: 'none',
-                background: filterStatus === s ? '#0d1b2a' : '#f1f5f9',
-                color: filterStatus === s ? '#fff' : '#64748b'
-              }}>
-              {s}
-            </button>
+            <button key={s} className={`cd-filter-btn ${filterStatus === s ? 'active' : 'inactive'}`}
+              onClick={() => setFilterStatus(s)}>{s}</button>
           ))}
         </div>
 
-        {/* Urgency legend */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16, fontSize: 12, color: '#64748b', flexWrap: 'wrap' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#fca5a5', display: 'inline-block' }} /> Overdue / Past</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#fbbf24', display: 'inline-block' }} /> Within 3 days</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#86efac', display: 'inline-block' }} /> Within 7 days</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: '#e2e8f0', display: 'inline-block' }} /> Upcoming</span>
+        {/* Legend */}
+        <div className="cd-legend">
+          <span><span className="cd-legend-dot" style={{ background: '#fca5a5' }} />Overdue / Past</span>
+          <span><span className="cd-legend-dot" style={{ background: '#fdba74' }} />Within 3 days</span>
+          <span><span className="cd-legend-dot" style={{ background: '#fde047' }} />Within 7 days</span>
+          <span><span className="cd-legend-dot" style={{ background: '#86efac' }} />Upcoming</span>
         </div>
 
-        {/* Table */}
+        {/* Entries */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8' }}>Loading case diary...</div>
+          <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8', fontSize: 14 }}>Loading case diary...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 48, color: '#94a3b8', fontSize: 14 }}>No entries found.</div>
         ) : (
-          <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            {/* Desktop table */}
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#0d1b2a', color: '#fff' }}>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>No.</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Parties</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>Case No.</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Court</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>Previous Dates</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>Next Date</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap' }}>Next Step</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Status</th>
-                    {isPartner && <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 600 }}>Actions</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={isPartner ? 9 : 8} style={{ padding: 32, textAlign: 'center', color: '#94a3b8' }}>
-                        No entries found.
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((entry, idx) => {
-                      const days = getDaysUntil(entry.next_date);
-                      const urgencyColor = getUrgencyColor(days);
-                      return (
-                        <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0d1b2a' }}>{entry.diary_no}</td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0d1b2a', maxWidth: 220 }}>
-                            {entry.linked_case_id ? (
-                              <Link href={`/cases/${entry.linked_case_id}`} style={{ color: '#1d4ed8', textDecoration: 'none' }}>
-                                {entry.parties}
-                              </Link>
-                            ) : entry.parties}
-                          </td>
-                          <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap' }}>{entry.case_no || '—'}</td>
-                          <td style={{ padding: '12px 16px', color: '#374151', maxWidth: 180 }}>{entry.court || '—'}</td>
-                          <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap' }}>{entry.previous_dates || '—'}</td>
-                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
-                            {entry.next_date ? (
-                              <span style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                background: urgencyColor, borderRadius: 6, padding: '4px 10px',
-                                fontWeight: 700, color: days !== null && days < 0 ? '#991b1b' : '#0d1b2a'
-                              }}>
-                                {formatDate(entry.next_date)}
-                                {days !== null && days >= 0 && days <= 7 && (
-                                  <span style={{ fontSize: 11, fontWeight: 600 }}>({days === 0 ? 'Today' : `${days}d`})</span>
-                                )}
-                                {days !== null && days < 0 && (
-                                  <span style={{ fontSize: 11, fontWeight: 600 }}>({Math.abs(days)}d ago)</span>
-                                )}
-                              </span>
-                            ) : '—'}
-                          </td>
-                          <td style={{ padding: '12px 16px', color: '#374151' }}>{entry.next_step || '—'}</td>
-                          <td style={{ padding: '12px 16px' }}>
-                            <span style={{
-                              fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '3px 8px',
-                              background: entry.status === 'Active' ? '#dcfce7' : entry.status === 'Disposed' ? '#f1f5f9' : '#fef9c3',
-                              color: entry.status === 'Active' ? '#166534' : entry.status === 'Disposed' ? '#64748b' : '#92400e'
-                            }}>
-                              {entry.status}
-                            </span>
-                          </td>
-                          {isPartner && (
-                            <td style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                              <button onClick={() => handleEdit(entry)}
-                                style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, color: '#374151', marginRight: 6 }}>
-                                Edit
-                              </button>
-                              <button onClick={() => handleDelete(entry.id)}
-                                style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, color: '#dc2626' }}>
-                                Delete
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile cards */}
-        <style>{`
-          @media (max-width: 768px) {
-            table { display: none !important; }
-            .diary-cards { display: block !important; }
-          }
-          .diary-cards { display: none; }
-        `}</style>
-        <div className="diary-cards">
-          {filtered.map(entry => {
+          filtered.map(entry => {
+            const isEditing = editingId === entry.id;
             const days = getDaysUntil(entry.next_date);
-            const urgencyColor = getUrgencyColor(days);
+            const urgStyle = getUrgencyStyle(days);
+            const stStyle = getStatusStyle(entry.status);
+
             return (
-              <div key={entry.id} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: 16, marginBottom: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                  <div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', marginRight: 8 }}>#{entry.diary_no}</span>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 6px',
-                      background: entry.status === 'Active' ? '#dcfce7' : '#f1f5f9',
-                      color: entry.status === 'Active' ? '#166534' : '#64748b'
-                    }}>{entry.status}</span>
-                  </div>
-                  {isPartner && (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => handleEdit(entry)} style={{ background: '#f1f5f9', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11 }}>Edit</button>
-                      <button onClick={() => handleDelete(entry.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#dc2626' }}>Del</button>
+              <div key={entry.id} className={`cd-entry${isEditing ? ' editing' : ''}`}>
+                {isEditing ? (
+                  /* ── EDIT MODE ── */
+                  <div className="cd-edit">
+                    <div className="cd-edit-grid">
+                      <div>
+                        <label style={fieldLabel}>Diary No.</label>
+                        <input style={inputStyle} type="number" value={editForm.diary_no}
+                          onChange={e => setEditForm(f => ({ ...f, diary_no: e.target.value }))} />
+                      </div>
+                      <div className="cd-edit-full">
+                        <label style={fieldLabel}>Parties *</label>
+                        <input style={inputStyle} type="text" value={editForm.parties}
+                          onChange={e => setEditForm(f => ({ ...f, parties: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Case No.</label>
+                        <input style={inputStyle} type="text" value={editForm.case_no}
+                          onChange={e => setEditForm(f => ({ ...f, case_no: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Court</label>
+                        <input style={inputStyle} type="text" value={editForm.court}
+                          onChange={e => setEditForm(f => ({ ...f, court: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Next Date</label>
+                        <input style={inputStyle} type="date" value={editForm.next_date}
+                          onChange={e => setEditForm(f => ({ ...f, next_date: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Next Step</label>
+                        <input style={inputStyle} type="text" value={editForm.next_step}
+                          onChange={e => setEditForm(f => ({ ...f, next_step: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={fieldLabel}>Status</label>
+                        <select style={inputStyle} value={editForm.status}
+                          onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                          {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div className="cd-edit-full">
+                        <label style={fieldLabel}>Previous Dates</label>
+                        <input style={inputStyle} type="text" value={editForm.previous_dates}
+                          placeholder="e.g. 12.03.2025, 15.04.2025"
+                          onChange={e => setEditForm(f => ({ ...f, previous_dates: e.target.value }))} />
+                      </div>
                     </div>
-                  )}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#0d1b2a', marginBottom: 4 }}>
-                  {entry.linked_case_id ? (
-                    <Link href={`/cases/${entry.linked_case_id}`} style={{ color: '#1d4ed8', textDecoration: 'none' }}>{entry.parties}</Link>
-                  ) : entry.parties}
-                </div>
-                {entry.case_no && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>Case No: {entry.case_no}</div>}
-                {entry.court && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{entry.court}</div>}
-                {entry.next_date && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ background: urgencyColor, borderRadius: 6, padding: '4px 10px', fontWeight: 700, fontSize: 13, color: days !== null && days < 0 ? '#991b1b' : '#0d1b2a' }}>
-                      Next: {formatDate(entry.next_date)}
-                      {days !== null && days >= 0 && days <= 7 && ` (${days === 0 ? 'Today' : `${days}d`})`}
-                    </span>
-                    {entry.next_step && <span style={{ fontSize: 12, color: '#374151' }}>{entry.next_step}</span>}
+                    <div className="cd-edit-actions">
+                      <button className="cd-save-btn" onClick={() => saveEdit(entry.id)}
+                        disabled={saving || !editForm.parties.trim()}>
+                        <CheckIcon size={13} /> {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button className="cd-cancel-btn" onClick={cancelEdit}>
+                        <XIcon size={13} /> Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* ── VIEW MODE ── */
+                  <div className="cd-view">
+                    {/* Top row: number, parties, status, actions */}
+                    <div className="cd-view-top">
+                      <span className="cd-no">#{entry.diary_no}</span>
+                      <div style={{ flex: 1 }}>
+                        {entry.linked_case_id ? (
+                          <Link href={`/cases/${entry.linked_case_id}`} className="cd-parties-link">
+                            <span className="cd-parties">{entry.parties}</span>
+                          </Link>
+                        ) : (
+                          <span className="cd-parties">{entry.parties}</span>
+                        )}
+                      </div>
+                      <span className="cd-status-badge" style={{ background: stStyle.bg, color: stStyle.color, borderColor: stStyle.border }}>
+                        {entry.status}
+                      </span>
+                      {canEdit && (
+                        <div className="cd-actions">
+                          <button className="cd-btn-icon" onClick={() => startEdit(entry)} title="Edit entry">
+                            <EditIcon size={13} /> <span style={{ display: 'none' }}>Edit</span>
+                          </button>
+                          <button className="cd-btn-icon danger" onClick={() => handleDelete(entry.id)} title="Delete entry">
+                            <TrashIcon size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fields grid */}
+                    <div className="cd-view-fields">
+                      {/* Case No */}
+                      <div className="cd-field">
+                        <div className="cd-field-label">Case No.</div>
+                        <div className="cd-field-value mono">{entry.case_no || <span style={{ color: '#cbd5e1' }}>—</span>}</div>
+                      </div>
+
+                      {/* Court */}
+                      <div className="cd-field">
+                        <div className="cd-field-label">Court</div>
+                        <div className="cd-field-value">{entry.court || <span style={{ color: '#cbd5e1' }}>—</span>}</div>
+                      </div>
+
+                      {/* Next Date */}
+                      <div className="cd-field">
+                        <div className="cd-field-label">Next Date</div>
+                        <div>
+                          {entry.next_date ? (
+                            <span className="cd-next-date" style={{ background: urgStyle.bg, color: urgStyle.color, borderColor: urgStyle.border }}>
+                              <CalendarIcon size={12} />
+                              {formatDate(entry.next_date)}
+                              {days !== null && days === 0 && <span style={{ fontSize: 10, fontWeight: 700 }}>TODAY</span>}
+                              {days !== null && days > 0 && days <= 7 && <span style={{ fontSize: 10 }}>{days}d</span>}
+                              {days !== null && days < 0 && <span style={{ fontSize: 10 }}>{Math.abs(days)}d ago</span>}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1', fontSize: 12 }}>Not set</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Next Step */}
+                      <div className="cd-field">
+                        <div className="cd-field-label">Next Step</div>
+                        <div className="cd-field-value">{entry.next_step || <span style={{ color: '#cbd5e1' }}>—</span>}</div>
+                      </div>
+
+                      {/* Previous Dates — full width, truncated with expand */}
+                      {entry.previous_dates && (
+                        <div className="cd-field" style={{ gridColumn: '1 / -1' }}>
+                          <div className="cd-field-label">Previous Dates</div>
+                          <PreviousDates dates={entry.previous_dates} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Case file link */}
+                    {entry.linked_case_id && (
+                      <Link href={`/cases/${entry.linked_case_id}`} className="cd-case-link">
+                        <LinkIcon size={12} /> Open Case File
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>
             );
-          })}
-        </div>
+          })
+        )}
       </div>
+
+      {/* Toast notification */}
+      {toast && <div className="cd-toast">{toast}</div>}
     </Layout>
+  );
+}
+
+// Collapsible previous dates component
+function PreviousDates({ dates }) {
+  const [expanded, setExpanded] = useState(false);
+  const parts = dates.split(',').map(d => d.trim()).filter(Boolean);
+  const SHOW_COUNT = 5;
+  const visible = expanded ? parts : parts.slice(0, SHOW_COUNT);
+  const hidden = parts.length - SHOW_COUNT;
+
+  return (
+    <div>
+      <span style={{ fontSize: 11, color: '#64748b', lineHeight: 1.6 }}>
+        {visible.join(', ')}
+        {!expanded && hidden > 0 && (
+          <>
+            {' '}
+            <button
+              onClick={() => setExpanded(true)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', fontSize: 11, fontWeight: 600, padding: 0 }}>
+              +{hidden} more
+            </button>
+          </>
+        )}
+        {expanded && hidden > 0 && (
+          <>
+            {' '}
+            <button
+              onClick={() => setExpanded(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 11, fontWeight: 600, padding: 0 }}>
+              show less
+            </button>
+          </>
+        )}
+      </span>
+    </div>
   );
 }

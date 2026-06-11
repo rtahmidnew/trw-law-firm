@@ -7,6 +7,38 @@ import { supabase } from '../lib/supabase';
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
+// Monochrome SVG icons
+const CalIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const GavelIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2l8 8-4 4-8-8 4-4z" />
+    <path d="M3 21l7-7" />
+    <path d="M7 17l-4 4" />
+  </svg>
+);
+
+const PlusIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const XIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
 export default function Journal() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -18,6 +50,7 @@ export default function Journal() {
   const [journalEntries, setJournalEntries] = useState([]);
   const [reminders, setReminders] = useState([]);
   const [cases, setCases] = useState([]);
+  const [diaryEntries, setDiaryEntries] = useState([]); // for "Set Hearing Date" dropdown
   const [activeTab, setActiveTab] = useState('journal');
 
   const [journalTitle, setJournalTitle] = useState('');
@@ -41,6 +74,13 @@ export default function Journal() {
   const [hearingPopup, setHearingPopup] = useState(null);
   const [monthHearings, setMonthHearings] = useState([]);
   const [allUpcomingHearings, setAllUpcomingHearings] = useState([]);
+
+  // Set Hearing Date modal state
+  const [showSetHearingModal, setShowSetHearingModal] = useState(false);
+  const [setHearingDate, setSetHearingDate] = useState('');
+  const [setHearingDiaryId, setSetHearingDiaryId] = useState('');
+  const [setHearingNextStep, setSetHearingNextStep] = useState('');
+  const [savingHearing, setSavingHearing] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -86,7 +126,15 @@ export default function Journal() {
       .order('client_name');
     setCases(casesData || []);
 
-    // Fetch hearings for current month (for calendar dots) — status = 'Active' (capital A)
+    // Fetch all diary entries for "Set Hearing Date" dropdown
+    const { data: allDiary } = await supabase
+      .from('case_diary')
+      .select('id, diary_no, parties, next_date, next_step, linked_case_id')
+      .eq('status', 'Active')
+      .order('diary_no', { ascending: true });
+    setDiaryEntries(allDiary || []);
+
+    // Fetch hearings for current month (calendar dots) — status = 'Active' (capital A)
     const { data: diaryMonth } = await supabase
       .from('case_diary')
       .select('id, diary_no, parties, next_step, next_date, linked_case_id, cases(id, file_number, client_name)')
@@ -115,7 +163,7 @@ export default function Journal() {
     setHearingDates(hdMap);
     setMonthHearings(hearingsList);
 
-    // Fetch ALL upcoming hearings (for Hearings tab) — not filtered by month
+    // Fetch ALL upcoming hearings (Hearings tab)
     const todayStr = new Date().toISOString().split('T')[0];
     const { data: diaryAll } = await supabase
       .from('case_diary')
@@ -137,6 +185,8 @@ export default function Journal() {
 
     setLoading(false);
   }, [user, currentMonth, currentYear]);
+
+  const canEdit = profile?.role === 'partner' || profile?.role === 'associate';
 
   const selectedEntries = journalEntries.filter(e => e.entry_date === selectedDate);
   const daysWithEntries = new Set(journalEntries.map(e => e.entry_date));
@@ -170,6 +220,39 @@ export default function Journal() {
       setHearingPopup({ day, dateStr, entries: hearingDates[dateStr] });
     } else {
       setHearingPopup(null);
+    }
+  };
+
+  const openSetHearingModal = (dateStr) => {
+    setSetHearingDate(dateStr || selectedDate);
+    setSetHearingDiaryId('');
+    setSetHearingNextStep('');
+    setShowSetHearingModal(true);
+    setHearingPopup(null);
+  };
+
+  const handleSaveHearingDate = async () => {
+    if (!setHearingDiaryId || !setHearingDate) return;
+    setSavingHearing(true);
+    const payload = {
+      next_date: setHearingDate,
+      updated_at: new Date().toISOString()
+    };
+    if (setHearingNextStep.trim()) {
+      payload.next_step = setHearingNextStep.trim();
+    }
+    const { error } = await supabase
+      .from('case_diary')
+      .update(payload)
+      .eq('id', setHearingDiaryId);
+    setSavingHearing(false);
+    if (!error) {
+      setShowSetHearingModal(false);
+      setSetHearingDiaryId('');
+      setSetHearingNextStep('');
+      setMsg('Hearing date updated on calendar.');
+      fetchData();
+      setTimeout(() => setMsg(''), 4000);
     }
   };
 
@@ -340,30 +423,35 @@ export default function Journal() {
         .jc-cal-cell.selected.has-hearing { border-color: #fbbf24; }
         .jc-dots { display: flex; justify-content: center; gap: 3px; margin-top: 3px; }
         .jc-dot { width: 5px; height: 5px; border-radius: 50%; }
-        .jc-dot-journal { background: #3b82f6; }
+        .jc-dot-journal { background: #94a3b8; }
         .jc-dot-hearing { background: #f59e0b; }
-        .jc-cell-selected .jc-dot-journal { background: #93c5fd; }
-        .jc-cell-selected .jc-dot-hearing { background: #fbbf24; }
-        .jc-legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; }
+        .jc-cal-cell.selected .jc-dot-journal { background: #cbd5e1; }
+        .jc-cal-cell.selected .jc-dot-hearing { background: #fbbf24; }
+        .jc-legend { display: flex; gap: 16px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #94a3b8; flex-wrap: wrap; }
         .jc-legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        .jc-popup { background: #fff; border-radius: 12px; border: 2px solid #f59e0b; padding: 16px; margin-top: 16px; }
+        .jc-popup { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 16px; margin-top: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
         .jc-popup-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .jc-popup-title { font-size: 14px; font-weight: 700; color: #92400e; margin: 0; }
-        .jc-popup-close { background: none; border: none; cursor: pointer; font-size: 18px; color: #94a3b8; line-height: 1; }
-        .jc-hearing-item { border-left: 3px solid #f59e0b; padding-left: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #fef3c7; }
+        .jc-popup-title { font-size: 14px; font-weight: 700; color: #0d1b2a; margin: 0; display: flex; align-items: center; gap: 7px; }
+        .jc-popup-close { background: none; border: none; cursor: pointer; color: #94a3b8; line-height: 1; display: flex; align-items: center; }
+        .jc-popup-close:hover { color: #374151; }
+        .jc-hearing-item { border-left: 3px solid #e2e8f0; padding-left: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
         .jc-hearing-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
         .jc-hearing-parties { font-weight: 700; font-size: 14px; color: #0d1b2a; margin-bottom: 4px; }
         .jc-hearing-step { font-size: 12px; color: #64748b; margin-bottom: 8px; }
         .jc-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .jc-btn-dark { font-size: 12px; color: #fff; background: #0d1b2a; border-radius: 6px; padding: 5px 12px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; }
-        .jc-btn-amber { font-size: 12px; color: #92400e; background: #fef3c7; border-radius: 6px; padding: 5px 12px; text-decoration: none; font-weight: 600; border: none; cursor: pointer; }
+        .jc-btn-dark:hover { background: #1e293b; }
+        .jc-btn-outline { font-size: 12px; color: #0d1b2a; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 12px; text-decoration: none; font-weight: 600; cursor: pointer; }
+        .jc-btn-outline:hover { background: #f8fafc; }
+        .jc-set-hearing-btn { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #0d1b2a; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 5px 12px; font-weight: 600; cursor: pointer; }
+        .jc-set-hearing-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
         .jc-reminders-box { background: #fff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px; margin-top: 16px; }
         .jc-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .jc-tab { padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; transition: all 0.15s; }
         .jc-tab.active { background: #0d1b2a; color: #fff; }
         .jc-tab.inactive { background: #f1f5f9; color: #64748b; }
         .jc-tab.inactive:hover { background: #e2e8f0; }
-        .jc-badge { background: #f59e0b; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+        .jc-badge { background: #0d1b2a; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
         .jc-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 14px; }
         .jc-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; box-sizing: border-box; font-family: inherit; }
         .jc-input:focus { outline: none; border-color: #94a3b8; }
@@ -375,13 +463,20 @@ export default function Journal() {
         .jc-cancel-btn { background: #f1f5f9; color: #64748b; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; font-size: 14px; }
         .jc-hearing-card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 18px; margin-bottom: 12px; }
         .jc-hearing-card-parties { font-size: 15px; font-weight: 700; color: #0d1b2a; margin: 0 0 6px; }
-        .jc-hearing-card-date { font-size: 13px; color: #64748b; margin-bottom: 6px; }
+        .jc-hearing-card-date { font-size: 13px; color: #64748b; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         .jc-hearing-card-step { font-size: 13px; color: #374151; margin-bottom: 10px; }
         .jc-badge-pill { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 3px 9px; display: inline-block; }
         .jc-diary-badge { font-size: 11px; font-weight: 700; background: #f1f5f9; color: #64748b; border-radius: 6px; padding: 3px 9px; }
-        .jc-msg { background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; color: #166534; font-size: 14px; }
+        .jc-msg { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; color: #15803d; font-size: 14px; }
         .jc-empty { text-align: center; padding: 48px 24px; color: #94a3b8; font-size: 14px; }
         .jc-set-reminder-btn { background: #0d1b2a; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 600; cursor: pointer; font-size: 14px; white-space: nowrap; }
+        /* Modal overlay */
+        .jc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .jc-modal { background: #fff; border-radius: 14px; padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 8px 40px rgba(0,0,0,0.18); }
+        .jc-modal-title { font-size: 16px; font-weight: 700; color: #0d1b2a; margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+        .jc-modal-label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+        .jc-modal-field { margin-bottom: 14px; }
+        .jc-modal-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
         @media (min-width: 900px) {
           .jc-body { grid-template-columns: 380px 1fr; }
           .jc-title { font-size: 30px; }
@@ -404,15 +499,23 @@ export default function Journal() {
             <p className="jc-subtitle">
               Daily work log, notes, and court hearing tracker
               {allUpcomingHearings.length > 0 && (
-                <span style={{ marginLeft: 10, background: '#fef3c7', color: '#92400e', borderRadius: 12, padding: '2px 10px', fontSize: 12, fontWeight: 600 }}>
-                  ⚖ {allUpcomingHearings.length} upcoming hearing{allUpcomingHearings.length !== 1 ? 's' : ''}
+                <span style={{ marginLeft: 10, background: '#f1f5f9', color: '#374151', borderRadius: 12, padding: '2px 10px', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <GavelIcon size={11} /> {allUpcomingHearings.length} upcoming hearing{allUpcomingHearings.length !== 1 ? 's' : ''}
                 </span>
               )}
             </p>
           </div>
-          <button className="jc-set-reminder-btn" onClick={() => { setShowReminderForm(true); setActiveTab('reminders'); }}>
-            + Set Reminder
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {canEdit && (
+              <button className="jc-set-reminder-btn" style={{ background: '#fff', color: '#0d1b2a', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 7 }}
+                onClick={() => openSetHearingModal(selectedDate)}>
+                <CalIcon size={14} /> Set Hearing Date
+              </button>
+            )}
+            <button className="jc-set-reminder-btn" onClick={() => { setShowReminderForm(true); setActiveTab('reminders'); }}>
+              + Set Reminder
+            </button>
+          </div>
         </div>
 
         {msg && <div className="jc-msg">{msg}</div>}
@@ -436,7 +539,6 @@ export default function Journal() {
               {/* Calendar cells */}
               <div className="jc-cal-grid">
                 {calendarCells.map((day, i) => {
-                  const hCount = getHearingCount(day);
                   const sel = isSelected(day);
                   const tod = isToday(day);
                   const hEntry = hasEntry(day);
@@ -452,8 +554,8 @@ export default function Journal() {
                       <span>{day}</span>
                       {(hEntry || hHear) && (
                         <div className="jc-dots">
-                          {hEntry && <div className={`jc-dot jc-dot-journal${sel ? ' jc-cell-selected' : ''}`} style={sel ? { background: '#93c5fd' } : {}} />}
-                          {hHear && <div className={`jc-dot jc-dot-hearing${sel ? ' jc-cell-selected' : ''}`} style={sel ? { background: '#fbbf24' } : {}} />}
+                          {hEntry && <div className="jc-dot jc-dot-journal" />}
+                          {hHear && <div className="jc-dot jc-dot-hearing" />}
                         </div>
                       )}
                     </div>
@@ -464,7 +566,7 @@ export default function Journal() {
               {/* Legend */}
               <div className="jc-legend">
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span className="jc-legend-dot" style={{ background: '#3b82f6' }} /> Journal entry
+                  <span className="jc-legend-dot" style={{ background: '#94a3b8' }} /> Journal entry
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span className="jc-legend-dot" style={{ background: '#f59e0b' }} /> Court hearing
@@ -476,8 +578,13 @@ export default function Journal() {
             {hearingPopup && (
               <div className="jc-popup">
                 <div className="jc-popup-header">
-                  <h4 className="jc-popup-title">⚖ {hearingPopup.entries.length} Hearing{hearingPopup.entries.length !== 1 ? 's' : ''} — {formatDate(hearingPopup.dateStr)}</h4>
-                  <button className="jc-popup-close" onClick={() => setHearingPopup(null)}>✕</button>
+                  <h4 className="jc-popup-title">
+                    <GavelIcon size={14} />
+                    {hearingPopup.entries.length} Hearing{hearingPopup.entries.length !== 1 ? 's' : ''} — {formatDate(hearingPopup.dateStr)}
+                  </h4>
+                  <button className="jc-popup-close" onClick={() => setHearingPopup(null)}>
+                    <XIcon size={16} />
+                  </button>
                 </div>
                 {hearingPopup.entries.map(h => (
                   <div key={h.id} className="jc-hearing-item">
@@ -487,10 +594,27 @@ export default function Journal() {
                       {h.linked_case_id && (
                         <Link href={`/cases/${h.linked_case_id}`} className="jc-btn-dark">Open Case File →</Link>
                       )}
-                      <Link href="/case-diary" className="jc-btn-amber">Case Diary</Link>
+                      <Link href="/case-diary" className="jc-btn-outline">Case Diary</Link>
                     </div>
                   </div>
                 ))}
+                {canEdit && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                    <button className="jc-set-hearing-btn" onClick={() => openSetHearingModal(hearingPopup.dateStr)}>
+                      <CalIcon size={12} /> Set / Update Hearing Date
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Set Hearing Date button below calendar when no popup */}
+            {!hearingPopup && canEdit && (
+              <div style={{ marginTop: 12 }}>
+                <button className="jc-set-hearing-btn" style={{ width: '100%', justifyContent: 'center', padding: '10px 16px' }}
+                  onClick={() => openSetHearingModal(selectedDate)}>
+                  <CalIcon size={13} /> Set Hearing Date for {formatDate(selectedDate)}
+                </button>
               </div>
             )}
 
@@ -501,7 +625,7 @@ export default function Journal() {
                 <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>No upcoming reminders.</p>
               ) : (
                 reminders.slice(0, 5).map(r => (
-                  <div key={r.id} style={{ borderLeft: '3px solid #f59e0b', paddingLeft: 10, marginBottom: 12 }}>
+                  <div key={r.id} style={{ borderLeft: '3px solid #e2e8f0', paddingLeft: 10, marginBottom: 12 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, color: '#0d1b2a' }}>{r.title}</div>
                     <div style={{ fontSize: 12, color: '#64748b' }}>{formatDateTime(r.reminder_datetime)}</div>
                     {r.cases && <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.cases.client_name}</div>}
@@ -509,7 +633,7 @@ export default function Journal() {
                 ))
               )}
               {reminders.length > 5 && (
-                <button onClick={() => setActiveTab('reminders')} style={{ fontSize: 12, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                <button onClick={() => setActiveTab('reminders')} style={{ fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                   View all {reminders.length} reminders →
                 </button>
               )}
@@ -569,7 +693,7 @@ export default function Journal() {
                             {entry.title && <h4 style={{ margin: '0 0 8px', fontSize: 15, fontWeight: 700, color: '#0d1b2a' }}>{entry.title}</h4>}
                             <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{entry.content}</p>
                             {entry.cases && (
-                              <span style={{ display: 'inline-block', marginTop: 8, fontSize: 12, color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '2px 8px' }}>
+                              <span style={{ display: 'inline-block', marginTop: 8, fontSize: 12, color: '#64748b', background: '#f8fafc', borderRadius: 4, padding: '2px 8px' }}>
                                 {entry.cases.client_name}
                               </span>
                             )}
@@ -647,7 +771,7 @@ export default function Journal() {
                             </div>
                             <div style={{ fontSize: 13, color: '#64748b', marginBottom: 4 }}>{formatDateTime(r.reminder_datetime)}</div>
                             {r.description && <p style={{ margin: '4px 0', fontSize: 13, color: '#374151' }}>{r.description}</p>}
-                            {r.cases && <span style={{ display: 'inline-block', fontSize: 12, color: '#3b82f6', background: '#eff6ff', borderRadius: 4, padding: '2px 8px' }}>{r.cases.client_name}</span>}
+                            {r.cases && <span style={{ display: 'inline-block', fontSize: 12, color: '#64748b', background: '#f8fafc', borderRadius: 4, padding: '2px 8px' }}>{r.cases.client_name}</span>}
                           </div>
                           <button onClick={() => handleDeleteReminder(r.id)} style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: 12, color: '#dc2626', flexShrink: 0 }}>Delete</button>
                         </div>
@@ -665,9 +789,16 @@ export default function Journal() {
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0d1b2a', margin: 0 }}>
                     All Upcoming Court Hearings
                   </h2>
-                  <Link href="/case-diary" style={{ fontSize: 13, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
-                    Full Case Diary →
-                  </Link>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {canEdit && (
+                      <button className="jc-set-hearing-btn" onClick={() => openSetHearingModal(selectedDate)}>
+                        <CalIcon size={12} /> Set Hearing Date
+                      </button>
+                    )}
+                    <Link href="/case-diary" style={{ fontSize: 13, color: '#64748b', textDecoration: 'none', fontWeight: 600 }}>
+                      Full Case Diary →
+                    </Link>
+                  </div>
                 </div>
 
                 {loading && <div style={{ color: '#94a3b8', fontSize: 14, padding: 24 }}>Loading hearings...</div>}
@@ -688,13 +819,16 @@ export default function Journal() {
                         )}
                       </div>
                       <h4 className="jc-hearing-card-parties">{h.parties}</h4>
-                      <div className="jc-hearing-card-date">📅 <strong>Hearing:</strong> {formatDate(h.next_date)}</div>
+                      <div className="jc-hearing-card-date">
+                        <CalIcon size={12} />
+                        <strong>Hearing:</strong> {formatDate(h.next_date)}
+                      </div>
                       {h.next_step && <div className="jc-hearing-card-step"><strong>Next Step:</strong> {h.next_step}</div>}
                       <div className="jc-btn-row">
                         {h.linked_case_id && (
                           <Link href={`/cases/${h.linked_case_id}`} className="jc-btn-dark">Open Case File →</Link>
                         )}
-                        <Link href="/case-diary" className="jc-btn-amber">Case Diary</Link>
+                        <Link href="/case-diary" className="jc-btn-outline">Case Diary</Link>
                       </div>
                     </div>
                   );
@@ -704,6 +838,54 @@ export default function Journal() {
           </div>
         </div>
       </div>
+
+      {/* Set Hearing Date Modal */}
+      {showSetHearingModal && (
+        <div className="jc-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowSetHearingModal(false); }}>
+          <div className="jc-modal">
+            <h2 className="jc-modal-title">
+              <CalIcon size={16} /> Set / Update Hearing Date
+            </h2>
+
+            <div className="jc-modal-field">
+              <label className="jc-modal-label">Case Diary Entry *</label>
+              <select className="jc-select" value={setHearingDiaryId} onChange={e => {
+                setSetHearingDiaryId(e.target.value);
+                const entry = diaryEntries.find(d => d.id === e.target.value);
+                if (entry?.next_step) setSetHearingNextStep(entry.next_step);
+              }}>
+                <option value="">Select a case from diary...</option>
+                {diaryEntries.map(d => (
+                  <option key={d.id} value={d.id}>
+                    #{d.diary_no} — {d.parties}{d.next_date ? ` (currently: ${formatDate(d.next_date)})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="jc-modal-field">
+              <label className="jc-modal-label">New Hearing Date *</label>
+              <input className="jc-input" type="date" value={setHearingDate}
+                onChange={e => setSetHearingDate(e.target.value)} />
+            </div>
+
+            <div className="jc-modal-field">
+              <label className="jc-modal-label">Next Step (optional)</label>
+              <input className="jc-input" type="text" value={setHearingNextStep}
+                placeholder="e.g. Framing of Charge, Witness examination..."
+                onChange={e => setSetHearingNextStep(e.target.value)} />
+            </div>
+
+            <div className="jc-modal-actions">
+              <button className="jc-save-btn" onClick={handleSaveHearingDate}
+                disabled={savingHearing || !setHearingDiaryId || !setHearingDate}>
+                {savingHearing ? 'Saving...' : 'Update Hearing Date'}
+              </button>
+              <button className="jc-cancel-btn" onClick={() => setShowSetHearingModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
