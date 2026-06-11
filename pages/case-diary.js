@@ -67,6 +67,7 @@ export default function CaseDiary() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('Active');
+  const [filterUrgency, setFilterUrgency] = useState(null); // null | 'overdue' | '3days' | '7days' | 'upcoming'
   const [toast, setToast] = useState('');
 
   // Inline editing — one entry at a time
@@ -125,7 +126,15 @@ export default function CaseDiary() {
       (e.case_no || '').toLowerCase().includes(q) ||
       (e.court || '').toLowerCase().includes(q) ||
       (e.next_step || '').toLowerCase().includes(q);
-    return matchStatus && matchSearch;
+    let matchUrgency = true;
+    if (filterUrgency) {
+      const days = getDaysUntil(e.next_date);
+      if (filterUrgency === 'overdue') matchUrgency = days !== null && days < 0;
+      else if (filterUrgency === '3days') matchUrgency = days !== null && days >= 0 && days <= 3;
+      else if (filterUrgency === '7days') matchUrgency = days !== null && days > 3 && days <= 7;
+      else if (filterUrgency === 'upcoming') matchUrgency = days !== null && days > 7;
+    }
+    return matchStatus && matchSearch && matchUrgency;
   });
 
   // Start inline edit
@@ -423,10 +432,33 @@ export default function CaseDiary() {
 
         {/* Legend */}
         <div className="cd-legend">
-          <span><span className="cd-legend-dot" style={{ background: '#fca5a5' }} />Overdue / Past</span>
-          <span><span className="cd-legend-dot" style={{ background: '#fdba74' }} />Within 3 days</span>
-          <span><span className="cd-legend-dot" style={{ background: '#fde047' }} />Within 7 days</span>
-          <span><span className="cd-legend-dot" style={{ background: '#86efac' }} />Upcoming</span>
+          {[
+            { key: 'overdue', label: 'Overdue / Past', color: '#fca5a5', active: '#dc2626' },
+            { key: '3days',   label: 'Within 3 days',  color: '#fdba74', active: '#ea580c' },
+            { key: '7days',   label: 'Within 7 days',  color: '#fde047', active: '#ca8a04' },
+            { key: 'upcoming',label: 'Upcoming',        color: '#86efac', active: '#16a34a' },
+          ].map(({ key, label, color, active }) => {
+            const isActive = filterUrgency === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilterUrgency(isActive ? null : key)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: isActive ? '#f8fafc' : 'transparent',
+                  border: isActive ? `1.5px solid ${active}` : '1.5px solid transparent',
+                  borderRadius: 20, padding: '3px 10px 3px 6px',
+                  cursor: 'pointer', fontSize: 11, fontWeight: isActive ? 700 : 500,
+                  color: isActive ? active : '#94a3b8',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span className="cd-legend-dot" style={{ background: color, flexShrink: 0 }} />
+                {label}
+                {isActive && <span style={{ marginLeft: 3, fontSize: 10, opacity: 0.7 }}>✕</span>}
+              </button>
+            );
+          })}
         </div>
 
         {/* Entries */}
