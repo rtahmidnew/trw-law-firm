@@ -136,9 +136,10 @@ export default function CaseDiary() {
     let matchUrgency = true;
     if (filterUrgency) {
       const days = getDaysUntil(e.next_date);
-      if (filterUrgency === 'overdue') matchUrgency = days !== null && days < 0;
-      else if (filterUrgency === '3days') matchUrgency = days !== null && days >= 0 && days <= 3;
-      else if (filterUrgency === '7days') matchUrgency = days !== null && days > 3 && days <= 7;
+      if (filterUrgency === 'today')    matchUrgency = days !== null && days === 0;
+      else if (filterUrgency === 'overdue')  matchUrgency = days !== null && days < 0;
+      else if (filterUrgency === '3days')    matchUrgency = days !== null && days >= 0 && days <= 3;
+      else if (filterUrgency === '7days')    matchUrgency = days !== null && days >= 0 && days <= 7;
       else if (filterUrgency === 'upcoming') matchUrgency = days !== null && days > 7;
     }
     return matchStatus && matchSearch && matchUrgency;
@@ -433,10 +434,11 @@ export default function CaseDiary() {
         {/* Legend */}
         <div className="cd-legend">
           {[
-            { key: 'overdue', label: 'Overdue / Past', color: '#fca5a5', active: '#dc2626' },
-            { key: '3days',   label: 'Within 3 days',  color: '#fdba74', active: '#ea580c' },
-            { key: '7days',   label: 'Within 7 days',  color: '#fde047', active: '#ca8a04' },
-            { key: 'upcoming',label: 'Upcoming',        color: '#86efac', active: '#16a34a' },
+            { key: 'today',   label: 'Today',           color: '#f87171', active: '#dc2626' },
+            { key: 'overdue', label: 'Overdue / Past',  color: '#fca5a5', active: '#9f1239' },
+            { key: '3days',   label: 'Within 3 days',   color: '#fdba74', active: '#ea580c' },
+            { key: '7days',   label: 'Within 7 days',   color: '#fde047', active: '#ca8a04' },
+            { key: 'upcoming',label: 'Upcoming',         color: '#86efac', active: '#16a34a' },
           ].map(({ key, label, color, active }) => {
             const isActive = filterUrgency === key;
             return (
