@@ -203,16 +203,16 @@ export default function AdminDashboard() {
   }))
 
   const stats = [
-    { label: 'Total Cases', value: cases.length, color: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200', href: '/admin/all-cases' },
-    { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800 hover:bg-green-100 border-green-200', href: '/admin/all-cases?status=open' },
-    { label: 'Pending', value: pendingCases.length, color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200', href: '/admin/all-cases?status=pending' },
-    { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300', href: '/admin/all-cases?status=closed' },
+    { label: 'Total Cases', value: cases.length, color: 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200', href: '/admin/all-cases' },
+    { label: 'Open', value: openCases.length, color: 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200', href: '/admin/all-cases?status=open' },
+    { label: 'Pending', value: pendingCases.length, color: 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200', href: '/admin/all-cases?status=pending' },
+    { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-200', href: '/admin/all-cases?status=closed' },
   ]
 
   function CaseCard({ c }) {
     return (
       <Link key={c.id} href={`/cases/${c.id}`}>
-        <div className="bg-white border border-gray-200 hover:border-blue-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
+        <div className="bg-white border border-gray-200 hover:border-gray-400 hover:shadow-sm rounded-xl p-4 cursor-pointer transition-all">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search cases by client, type, court number, file number, or associate…"
-          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+          className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent shadow-sm"
         />
         {search && (
           <button
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
                   {associateStats.map(a => (
                     <Link key={a.id} href={`/admin/associate/${a.id}`}>
                       <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: 'rgb(29, 78, 216)' }}>
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ backgroundColor: '#1f2937' }}>
                           {a.full_name?.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">

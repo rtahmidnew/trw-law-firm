@@ -53,14 +53,14 @@ export default function AssociateView() {
     <Layout>
       <button
         onClick={() => router.push('/admin')}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-700 mb-6"
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-6"
       >
         ← Back to Overview
       </button>
 
       {/* Associate header */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6 flex items-center gap-4">
-        <div className="w-14 h-14 rounded-full bg-blue-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
+        <div className="w-14 h-14 rounded-full bg-gray-800 flex items-center justify-center text-white text-xl font-bold shrink-0">
           {associate?.full_name?.charAt(0).toUpperCase()}
         </div>
         <div>
@@ -72,15 +72,15 @@ export default function AssociateView() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total', key: 'all', color: 'bg-blue-50 text-blue-800' },
-          { label: 'Open', key: 'open', color: 'bg-green-50 text-green-800' },
-          { label: 'Pending', key: 'pending', color: 'bg-yellow-50 text-yellow-800' },
+          { label: 'Total', key: 'all', color: 'bg-gray-100 text-gray-800' },
+          { label: 'Open', key: 'open', color: 'bg-gray-100 text-gray-800' },
+          { label: 'Pending', key: 'pending', color: 'bg-gray-100 text-gray-800' },
           { label: 'Closed', key: 'closed', color: 'bg-gray-100 text-gray-600' },
         ].map(s => (
           <div
             key={s.key}
             onClick={() => setFilter(s.key)}
-            className={`cursor-pointer rounded-xl p-4 ${s.color} ${filter === s.key ? 'ring-2 ring-blue-500' : ''}`}
+            className={`cursor-pointer rounded-xl p-4 ${s.color} ${filter === s.key ? 'ring-2 ring-gray-800' : ''}`}
           >
             <p className="text-2xl font-bold">{counts[s.key]}</p>
             <p className="text-xs font-medium mt-0.5">{s.label}</p>
@@ -98,7 +98,7 @@ export default function AssociateView() {
         <div className="space-y-3">
           {filtered.map(c => (
             <Link key={c.id} href={`/cases/${c.id}`}>
-              <div className="bg-white rounded-xl border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all p-5 cursor-pointer">
+              <div className="bg-white rounded-xl border border-gray-200 hover:border-gray-400 hover:shadow-md transition-all p-5 cursor-pointer">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
