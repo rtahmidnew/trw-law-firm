@@ -377,6 +377,29 @@ export default function CaseDetail() {
     setToggingStar(false)
   }
 
+  // ── Hide from Client toggles ────────────────────────────
+  async function toggleTimelineHide(entry) {
+    const newVal = !entry.hide_from_client
+    const { data } = await supabase
+      .from('timeline_entries')
+      .update({ hide_from_client: newVal })
+      .eq('id', entry.id)
+      .select('*, profiles(full_name)')
+      .single()
+    if (data) setTimeline(prev => prev.map(e => e.id === entry.id ? data : e))
+  }
+
+  async function toggleDocHide(doc) {
+    const newVal = !doc.hide_from_client
+    const { data } = await supabase
+      .from('documents')
+      .update({ hide_from_client: newVal })
+      .eq('id', doc.id)
+      .select()
+      .single()
+    if (data) setDocuments(prev => prev.map(d => d.id === doc.id ? data : d))
+  }
+
   // ── Delete Case ──────────────────────────────────────────
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -817,38 +840,57 @@ export default function CaseDetail() {
                       <div className="bg-white rounded-xl border border-gray-200 p-4">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm text-gray-900 leading-relaxed flex-1">{entry.entry_text}</p>
-                          {isPartner && (
-                            <div className="flex gap-1 shrink-0">
+                          <div className="flex gap-1 shrink-0">
+                              {/* Hide from client toggle — visible to partners & associates */}
                               <button
-                                onClick={() => startEditEntry(entry)}
-                                title="Edit entry"
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                onClick={() => toggleTimelineHide(entry)}
+                                title={entry.hide_from_client ? 'Hidden from client — click to show' : 'Visible to client — click to hide'}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  entry.hide_from_client
+                                    ? 'text-orange-500 bg-orange-50 hover:bg-orange-100'
+                                    : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+                                }`}
                               >
-                                <IconEdit size={12} />
+                                <IconEye size={12} />
                               </button>
-                              <button
-                                onClick={() => deleteTimelineEntry(entry.id)}
-                                title="Delete entry"
-                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                              >
-                                <IconTrash size={12} />
-                              </button>
+                              {isPartner && (
+                                <>
+                                  <button
+                                    onClick={() => startEditEntry(entry)}
+                                    title="Edit entry"
+                                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                  >
+                                    <IconEdit size={12} />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteTimelineEntry(entry.id)}
+                                    title="Delete entry"
+                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  >
+                                    <IconTrash size={12} />
+                                  </button>
+                                </>
+                              )}
                             </div>
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-xs text-gray-400">
+                            {entry.entry_date ? (
+                              <span className="font-medium text-gray-500">
+                                {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            ) : null}
+                            {entry.entry_date && ' · '}
+                            {entry.profiles?.full_name || 'Team'}
+                            {' · Added '}
+                            {new Date(entry.created_at).toLocaleDateString('en-GB', {
+                              day: 'numeric', month: 'short', year: 'numeric'
+                            })}
+                          </p>
+                          {entry.hide_from_client && (
+                            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">Hidden from client</span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-2">
-                          {entry.entry_date ? (
-                            <span className="font-medium text-gray-500">
-                              {new Date(entry.entry_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                            </span>
-                          ) : null}
-                          {entry.entry_date && ' · '}
-                          {entry.profiles?.full_name || 'Team'}
-                          {' · Added '}
-                          {new Date(entry.created_at).toLocaleDateString('en-GB', {
-                            day: 'numeric', month: 'short', year: 'numeric'
-                          })}
-                        </p>
                       </div>
                     )}
                   </div>
@@ -953,11 +995,20 @@ export default function CaseDetail() {
                         <p className="text-xs font-medium text-gray-800 truncate cursor-pointer hover:text-blue-700" title={doc.file_name} onDoubleClick={() => startRename(doc)}>{doc.file_name}</p>
                       )}
                       <p className="text-xs text-gray-400 mt-0.5">{formatFileSize(doc.file_size)}</p>
-                      <div className="flex gap-1 mt-1.5">
+                      <div className="flex gap-1 mt-1.5 flex-wrap">
                         {canPreview && <button onClick={() => openPreview(doc)} className="text-xs text-blue-600 hover:text-blue-800">Preview</button>}
                         <button onClick={() => downloadDocument(doc)} className="text-xs text-blue-600 hover:text-blue-800">↓ Download</button>
                         <button onClick={() => startRename(doc)} className="text-xs text-gray-400 hover:text-gray-700"><IconEdit size={11} /></button>
-                        <button onClick={() => deleteDocument(doc)} className="text-xs text-red-400 hover:text-red-600 ml-auto"><IconX size={11} /></button>
+                        <button
+                          onClick={() => toggleDocHide(doc)}
+                          title={doc.hide_from_client ? 'Hidden from client' : 'Visible to client'}
+                          className={`text-xs ml-auto ${
+                            doc.hide_from_client ? 'text-orange-500 font-medium' : 'text-gray-300 hover:text-gray-500'
+                          }`}
+                        >
+                          <IconEye size={11} />
+                        </button>
+                        <button onClick={() => deleteDocument(doc)} className="text-xs text-red-400 hover:text-red-600"><IconX size={11} /></button>
                       </div>
                     </div>
                   </div>
@@ -1004,6 +1055,17 @@ export default function CaseDetail() {
                       </button>
                       <button onClick={() => downloadDocument(doc)} className="text-blue-700 hover:text-blue-900 text-sm font-medium border border-blue-200 rounded px-2 py-1">
                         Download
+                      </button>
+                      <button
+                        onClick={() => toggleDocHide(doc)}
+                        title={doc.hide_from_client ? 'Hidden from client — click to show' : 'Visible to client — click to hide'}
+                        className={`inline-flex items-center gap-1 text-xs border rounded px-2 py-1 transition-colors ${
+                          doc.hide_from_client
+                            ? 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100'
+                            : 'border-gray-200 text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        <IconEye size={11} />{doc.hide_from_client ? 'Hidden' : 'Visible'}
                       </button>
                       <button onClick={() => deleteDocument(doc)} className="text-red-400 hover:text-red-600"><IconX size={14} /></button>
                     </div>
