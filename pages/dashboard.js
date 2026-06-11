@@ -173,7 +173,6 @@ export default function Dashboard() {
   const myCases = cases.filter(c => c.assigned_to === userId)
   const openCases = myCases.filter(c => c.status === 'open')
   const pendingCases = myCases.filter(c => c.status === 'pending')
-  const closedCases = myCases.filter(c => c.status === 'closed')
   const starredCases = cases.filter(c => c.is_starred)
   const recentCases = cases.slice(0, 8)
 
@@ -191,7 +190,7 @@ export default function Dashboard() {
     { label: 'My Cases', value: myCases.length, color: 'bg-blue-50 text-blue-800 hover:bg-blue-100 border-blue-200', href: '/cases?assigned=me' },
     { label: 'Open', value: openCases.length, color: 'bg-green-50 text-green-800 hover:bg-green-100 border-green-200', href: '/cases?assigned=me&status=open' },
     { label: 'Pending', value: pendingCases.length, color: 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200', href: '/cases?assigned=me' },
-    { label: 'Closed', value: closedCases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300', href: '/cases?assigned=me&status=closed' },
+    { label: 'All Cases', value: cases.length, color: 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-300', href: '/cases' },
   ]
 
   function CaseCard({ c }) {
