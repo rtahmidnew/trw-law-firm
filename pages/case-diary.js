@@ -52,6 +52,13 @@ const PlusIcon = ({ size = 14 }) => (
   </svg>
 );
 
+const PossessionIcon = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 const LinkIcon = ({ size = 13 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -64,6 +71,7 @@ export default function CaseDiary() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [associates, setAssociates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('Active');
@@ -79,7 +87,7 @@ export default function CaseDiary() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({
     diary_no: '', parties: '', case_no: '', court: '',
-    previous_dates: '', next_date: '', next_step: '', status: 'Active'
+    previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: ''
   });
   const [addSaving, setAddSaving] = useState(false);
 
@@ -92,14 +100,16 @@ export default function CaseDiary() {
       const u = session.user;
       setUser(u);
       // Fetch profile and diary entries in parallel
-      const [{ data: prof }, { data: diaryData }] = await Promise.all([
+        const [{ data: prof }, { data: diaryData }, { data: assocData }] = await Promise.all([
         supabase.from('profiles').select('id, role, full_name').eq('id', u.id).single(),
         supabase.from('case_diary')
-          .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id')
+          .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id, possession_of')
           .order('diary_no', { ascending: true }),
+        supabase.from('profiles').select('id, full_name').eq('role', 'associate').order('full_name'),
       ]);
       setProfile(prof);
       setEntries(diaryData || []);
+      setAssociates(assocData || []);
       setLoading(false);
     };
     init();
@@ -109,7 +119,7 @@ export default function CaseDiary() {
     setLoading(true);
     const { data, error } = await supabase
       .from('case_diary')
-      .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id')
+      .select('id, diary_no, parties, case_no, court, previous_dates, next_date, next_step, status, linked_case_id, possession_of')
       .order('diary_no', { ascending: true });
     if (!error) setEntries(data || []);
     setLoading(false);
@@ -160,7 +170,8 @@ export default function CaseDiary() {
       previous_dates: entry.previous_dates || '',
       next_date: entry.next_date || '',
       next_step: entry.next_step || '',
-      status: entry.status || 'Active'
+      status: entry.status || 'Active',
+      possession_of: entry.possession_of || ''
     });
   };
 
@@ -180,6 +191,7 @@ export default function CaseDiary() {
       next_date: editForm.next_date || null,
       next_step: editForm.next_step.trim() || null,
       status: editForm.status,
+
       updated_at: new Date().toISOString()
     };
     const { error } = await supabase.from('case_diary').update(payload).eq('id', entryId);
@@ -211,12 +223,13 @@ export default function CaseDiary() {
       previous_dates: addForm.previous_dates.trim() || null,
       next_date: addForm.next_date || null,
       next_step: addForm.next_step.trim() || null,
-      status: addForm.status
+      status: addForm.status,
+      possession_of: addForm.possession_of.trim() || null
     };
     await supabase.from('case_diary').insert(payload);
     setAddSaving(false);
     setShowAddForm(false);
-    setAddForm({ diary_no: '', parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active' });
+    setAddForm({ diary_no: '', parties: '', case_no: '', court: '', previous_dates: '', next_date: '', next_step: '', status: 'Active', possession_of: '' });
     showToast('New entry added.');
     fetchEntries();
   };
@@ -407,6 +420,18 @@ export default function CaseDiary() {
                   {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
+              <div>
+                <label style={fieldLabel}>In Possession Of</label>
+                <select style={inputStyle} value={addForm.possession_of}
+                  onChange={e => setAddForm(f => ({ ...f, possession_of: e.target.value }))}>
+                  <option value="">— Not set —</option>
+                  <option value="Court">Court</option>
+                  <option value="DOHS Chamber">DOHS Chamber</option>
+                  {associates.map(a => (
+                    <option key={a.id} value={a.full_name}>{a.full_name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="cd-edit-full">
                 <label style={fieldLabel}>Previous Dates</label>
                 <input style={inputStyle} type="text" value={addForm.previous_dates}
@@ -522,6 +547,18 @@ export default function CaseDiary() {
                           {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
                         </select>
                       </div>
+                      <div>
+                        <label style={fieldLabel}>In Possession Of</label>
+                        <select style={inputStyle} value={editForm.possession_of}
+                          onChange={e => setEditForm(f => ({ ...f, possession_of: e.target.value }))}>
+                          <option value="">— Not set —</option>
+                          <option value="Court">Court</option>
+                          <option value="DOHS Chamber">DOHS Chamber</option>
+                          {associates.map(a => (
+                            <option key={a.id} value={a.full_name}>{a.full_name}</option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="cd-edit-full">
                         <label style={fieldLabel}>Previous Dates</label>
                         <input style={inputStyle} type="text" value={editForm.previous_dates}
@@ -605,6 +642,21 @@ export default function CaseDiary() {
                       <div className="cd-field">
                         <div className="cd-field-label">Next Step</div>
                         <div className="cd-field-value">{entry.next_step || <span style={{ color: '#cbd5e1' }}>—</span>}</div>
+                      </div>
+
+                      {/* In Possession Of */}
+                      <div className="cd-field">
+                        <div className="cd-field-label">In Possession Of</div>
+                        <div>
+                          {entry.possession_of ? (
+                            <span className="cd-next-date" style={{ background: '#f8fafc', color: '#1e293b', borderColor: '#cbd5e1' }}>
+                              <PossessionIcon size={12} />
+                              {entry.possession_of}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#cbd5e1', fontSize: 12 }}>Not set</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Previous Dates — full width, truncated with expand */}
