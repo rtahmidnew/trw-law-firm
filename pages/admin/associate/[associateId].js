@@ -19,16 +19,42 @@ export default function AssociateView() {
       const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
       if (!user) { router.push('/'); return }
 
-      const [assocRes, casesRes] = await Promise.all([
+      // Fetch profile, cases assigned directly, and cases via user_cases junction
+      const [assocRes, assignedRes, userCasesRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', associateId).single(),
         supabase.from('cases')
           .select('*')
           .eq('assigned_to', associateId)
           .order('updated_at', { ascending: false }),
+        supabase.from('user_cases')
+          .select('case_id')
+          .eq('user_id', associateId),
       ])
 
+      // Build a unified list of cases (union of assigned + user_cases, no duplicates)
+      const assignedCases = assignedRes.data || []
+      const junctionCaseIds = (userCasesRes.data || []).map(uc => uc.case_id)
+      const assignedIds = new Set(assignedCases.map(c => c.id))
+
+      // Fetch full case data for junction cases not already in assigned list
+      const missingIds = junctionCaseIds.filter(cid => !assignedIds.has(cid))
+      let junctionCases = []
+      if (missingIds.length > 0) {
+        const { data: jRes } = await supabase
+          .from('cases')
+          .select('*')
+          .in('id', missingIds)
+          .order('updated_at', { ascending: false })
+        junctionCases = jRes || []
+      }
+
+      // Merge and sort by updated_at desc
+      const allCases = [...assignedCases, ...junctionCases].sort(
+        (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+      )
+
       setAssociate(assocRes.data)
-      setCases(casesRes.data || [])
+      setCases(allCases)
       setLoading(false)
     }
     load()
