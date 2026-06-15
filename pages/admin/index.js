@@ -131,13 +131,20 @@ export default function AdminDashboard() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/'); return }
 
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('id, role, full_name, email')
-        .eq('id', user.id)
-        .single()
+      // Retry profile fetch up to 3 times — prevents false redirect if DB is slow
+      let prof = null
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, role, full_name, email')
+          .eq('id', user.id)
+          .single()
+        if (data) { prof = data; break }
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500))
+      }
 
-      if (prof?.role !== 'partner') { router.push('/dashboard'); return }
+      if (!prof) { router.push('/'); return }
+      if (prof.role !== 'partner') { router.push('/dashboard'); return }
       setProfile(prof)
 
       const [assocRes, casesRes] = await Promise.all([

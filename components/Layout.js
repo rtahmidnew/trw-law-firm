@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 export default function Layout({ children }) {
   const router = useRouter()
   const [profile, setProfile] = useState(null)
+  const [profileLoaded, setProfileLoaded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -22,6 +23,7 @@ export default function Layout({ children }) {
         .eq('id', user.id)
         .single()
       setProfile(data)
+      setProfileLoaded(true)
     }
     loadProfile()
   }, [])
@@ -62,7 +64,8 @@ export default function Layout({ children }) {
     router.push('/')
   }
 
-  const isPartner = profile?.role === 'partner'
+  // Only determine role once profile is loaded — prevents associate nav flash on partner pages
+  const isPartner = profileLoaded ? profile?.role === 'partner' : null
 
   const partnerLinks = [
     { href: '/admin', label: 'Overview', exact: true },
@@ -82,7 +85,8 @@ export default function Layout({ children }) {
     { href: '/cases/new', label: '+ New Case', exact: true },
   ]
 
-  const navLinks = isPartner ? partnerLinks : associateLinks
+  // While profile is loading, show no nav links (prevents flash of wrong role nav)
+  const navLinks = isPartner === null ? [] : (isPartner ? partnerLinks : associateLinks)
 
   function isActive(link) {
     if (link.matchFn) return link.matchFn()
@@ -112,7 +116,7 @@ export default function Layout({ children }) {
                 </span>
               </Link>
 
-              {/* Desktop nav links */}
+              {/* Desktop nav links — only rendered once profile is loaded */}
               <div className="hidden sm:flex items-center gap-4 text-sm">
                 {navLinks.map(link => (
                   <Link key={link.href} href={link.href}>
@@ -157,7 +161,7 @@ export default function Layout({ children }) {
               {/* User info — desktop only */}
               {profile && (
                 <div className="hidden sm:flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: 'rgb(0, 200, 150)' }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: '#374151' }}>
                     {profile.full_name?.charAt(0).toUpperCase()}
                   </div>
                   <div className="text-right">
@@ -226,7 +230,7 @@ export default function Layout({ children }) {
             {/* User info strip */}
             {profile && (
               <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-700">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ backgroundColor: 'rgb(0, 200, 150)' }}>
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ backgroundColor: '#374151' }}>
                   {profile.full_name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -236,14 +240,14 @@ export default function Layout({ children }) {
               </div>
             )}
 
-            {/* Nav links */}
+            {/* Nav links — only rendered once profile is loaded */}
             <div className="py-2">
               {navLinks.map(link => (
                 <Link key={link.href} href={link.href}>
                   <span
                     className={`flex items-center px-4 py-3 text-sm cursor-pointer transition-colors ${
                       isActive(link)
-                        ? 'text-white font-semibold bg-white/10 border-l-2 border-emerald-400'
+                        ? 'text-white font-semibold bg-white/10 border-l-2 border-white'
                         : 'text-gray-300 hover:text-white hover:bg-white/5'
                     }`}
                   >
@@ -257,7 +261,7 @@ export default function Layout({ children }) {
                 <span
                   className={`flex items-center justify-between px-4 py-3 text-sm cursor-pointer transition-colors ${
                     isNotificationsActive
-                      ? 'text-white font-semibold bg-white/10 border-l-2 border-emerald-400'
+                      ? 'text-white font-semibold bg-white/10 border-l-2 border-white'
                       : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
