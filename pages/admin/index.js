@@ -119,6 +119,7 @@ function InstructionsPreview() {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter()
   const { profile, authLoading } = useAuth({ requiredRole: 'partner' })
   const [associates, setAssociates] = useState([])
   const [cases, setCases] = useState([])
@@ -126,18 +127,31 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('')
   const [togglingStarId, setTogglingStarId] = useState(null)
 
+  async function loadData() {
+    const [assocRes, casesRes] = await Promise.all([
+      supabase.from('profiles').select('id, full_name, role').eq('role', 'associate'),
+      supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+    ])
+    setAssociates(assocRes.data || [])
+    setCases(casesRes.data || [])
+    setDataLoading(false)
+  }
+
   useEffect(() => {
     if (!profile) return
-    async function loadData() {
-      const [assocRes, casesRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, role').eq('role', 'associate'),
-        supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
-      ])
-      setAssociates(assocRes.data || [])
-      setCases(casesRes.data || [])
-      setDataLoading(false)
-    }
     loadData()
+  }, [profile])
+
+  // Re-fetch data every time the user navigates back to this page
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      if (url === '/admin' && profile) {
+        setDataLoading(true)
+        loadData()
+      }
+    }
+    router.events.on('routeChangeComplete', handleRouteChange)
+    return () => router.events.off('routeChangeComplete', handleRouteChange)
   }, [profile])
 
   async function toggleStar(e, caseId, currentVal) {
