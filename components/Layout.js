@@ -78,6 +78,7 @@ export default function Layout({ children }) {
     { href: '/case-diary', label: 'Case Diary', exact: true },
     { href: '/instructions', label: 'Instructions', exact: true },
     { href: '/journal', label: 'Journal', exact: true },
+    { href: '/templates', label: 'Templates', exact: true },
   ]
 
   const associateLinks = [
@@ -87,6 +88,7 @@ export default function Layout({ children }) {
     { href: '/case-diary', label: 'Case Diary', exact: true },
     { href: '/instructions', label: 'Instructions', exact: true },
     { href: '/journal', label: 'Journal', exact: true },
+    { href: '/templates', label: 'Templates', exact: true },
     { href: '/cases/new', label: '+ New Case', exact: true },
   ]
 
