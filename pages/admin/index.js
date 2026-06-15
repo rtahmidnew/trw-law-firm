@@ -130,7 +130,7 @@ export default function AdminDashboard() {
     if (!profile) return
     async function loadData() {
       const [assocRes, casesRes] = await Promise.all([
-        supabase.from('profiles').select('id, full_name, email, role').eq('role', 'associate'),
+        supabase.from('profiles').select('id, full_name, role').eq('role', 'associate'),
         supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
       ])
       setAssociates(assocRes.data || [])
