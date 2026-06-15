@@ -11,21 +11,26 @@ export default function Layout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+    // Use onAuthStateChange so we wait for the session to be fully restored
+    // from localStorage before deciding whether to redirect to /
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        if (!session) {
+          router.push('/')
+          return
+        }
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        setProfile(data)
+        setProfileLoaded(true)
+      } else if (event === 'SIGNED_OUT') {
         router.push('/')
-        return
       }
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      setProfile(data)
-      setProfileLoaded(true)
-    }
-    loadProfile()
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
   // Load unread notification count
@@ -48,7 +53,6 @@ export default function Layout({ children }) {
   useEffect(() => {
     setMenuOpen(false)
     if (router.pathname === '/notifications') {
-      // After visiting notifications, refresh count after a short delay
       setTimeout(async () => {
         const { count } = await supabase
           .from('notifications')
@@ -138,7 +142,6 @@ export default function Layout({ children }) {
                   style={{ color: isNotificationsActive ? '#fff' : '#d1d5db' }}
                   title="Notifications"
                 >
-                  {/* Bell SVG */}
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
