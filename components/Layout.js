@@ -83,13 +83,11 @@ export default function Layout({ children }) {
 
   const associateLinks = [
     { href: '/dashboard', label: 'Dashboard', exact: true },
-    { href: '/cases?assigned=me', label: 'My Cases', matchFn: () => router.pathname === '/cases' && router.query.assigned === 'me' },
-    { href: '/cases', label: 'All Cases', matchFn: () => router.pathname === '/cases' && !router.query.assigned },
+    { href: '/cases', label: 'All Cases', exact: true },
     { href: '/case-diary', label: 'Case Diary', exact: true },
     { href: '/instructions', label: 'Instructions', exact: true },
     { href: '/journal', label: 'Journal', exact: true },
     { href: '/templates', label: 'Templates', exact: true },
-    { href: '/cases/new', label: '+ New Case', exact: true },
   ]
 
   // Show no nav links until profile is loaded (prevents flash of wrong role nav)
