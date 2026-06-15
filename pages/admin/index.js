@@ -22,10 +22,10 @@ function VisibilityBadge({ isPublic }) {
 }
 
 const PRIORITY_DOT = {
-  low: 'bg-gray-400',
-  normal: 'bg-blue-500',
-  high: 'bg-orange-500',
-  urgent: 'bg-red-500',
+  low: 'bg-gray-300',
+  normal: 'bg-gray-500',
+  high: 'bg-gray-700',
+  urgent: 'bg-gray-900',
 }
 
 function InstructionsPreview() {
@@ -57,7 +57,7 @@ function InstructionsPreview() {
           )}
         </div>
         <Link href="/instructions">
-          <span className="text-xs font-semibold text-blue-700 hover:text-blue-900 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
+          <span className="text-xs font-semibold text-gray-700 hover:text-gray-900 border border-gray-300 hover:border-gray-500 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
             View All →
           </span>
         </Link>
@@ -72,7 +72,7 @@ function InstructionsPreview() {
           <div className="px-4 py-6 text-center">
             <p className="text-xs text-gray-400">No pending tasks.</p>
             <Link href="/instructions">
-              <span className="text-xs text-blue-600 hover:underline cursor-pointer mt-1 block">+ Add a task</span>
+              <span className="text-xs text-gray-600 hover:underline cursor-pointer mt-1 block">+ Add a task</span>
             </Link>
           </div>
         )}
@@ -107,7 +107,7 @@ function InstructionsPreview() {
       {items.length > 0 && (
         <div className="border-t border-gray-100 px-4 py-2.5 bg-gray-50">
           <Link href="/instructions">
-            <span className="text-xs text-blue-700 hover:underline cursor-pointer font-medium">
+            <span className="text-xs text-gray-700 hover:underline cursor-pointer font-medium">
               Open full board →
             </span>
           </Link>
@@ -257,7 +257,7 @@ export default function AdminDashboard() {
           <p className="text-gray-500 text-sm mt-0.5">{profile?.full_name} · Partner</p>
         </div>
         <Link href="/cases/new">
-          <button className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+          <button className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
             <span className="text-lg leading-none">+</span> Open New Case
           </button>
         </Link>
@@ -320,14 +320,11 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Main layout: Left sidebar (Instructions + Associates) + Right (Starred + Recent Cases) */}
+          {/* Main layout: Left sidebar + Right (Starred + Recent Cases) */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-            {/* LEFT SIDEBAR: Instructions Preview + Associates */}
+            {/* LEFT SIDEBAR: Associates + Instructions */}
             <div className="lg:col-span-1 space-y-5">
-
-              {/* Instructions Preview Widget */}
-              <InstructionsPreview />
 
               {/* Associates Widget */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -355,6 +352,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Instructions Preview Widget */}
+              <InstructionsPreview />
+
             </div>
 
             {/* RIGHT: Starred Cases + Recent Cases */}
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-base font-semibold text-gray-800">Recent Cases</h2>
                   <Link href="/admin/all-cases">
-                    <span className="text-sm text-blue-700 hover:underline cursor-pointer">View all →</span>
+                    <span className="text-sm text-gray-600 hover:underline cursor-pointer">View all →</span>
                   </Link>
                 </div>
                 <div className="space-y-2">
