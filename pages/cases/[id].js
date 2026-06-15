@@ -895,24 +895,22 @@ export default function CaseDetail() {
                               >
                                 <IconEye size={12} />
                               </button>
-                              {isPartner && (
-                                <>
-                                  <button
-                                    onClick={() => startEditEntry(entry)}
-                                    title="Edit entry"
-                                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                                  >
-                                    <IconEdit size={12} />
-                                  </button>
-                                  <button
-                                    onClick={() => deleteTimelineEntry(entry.id)}
-                                    title="Delete entry"
-                                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                                  >
-                                    <IconTrash size={12} />
-                                  </button>
-                                </>
-                              )}
+              <>
+                  <button
+                    onClick={() => startEditEntry(entry)}
+                    title="Edit entry"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    <IconEdit size={12} />
+                  </button>
+                  <button
+                    onClick={() => deleteTimelineEntry(entry.id)}
+                    title="Delete entry"
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <IconTrash size={12} />
+                  </button>
+                </>
                             </div>
                         </div>
                         <div className="flex items-center justify-between mt-2">
