@@ -6,28 +6,28 @@ import { supabase } from '../lib/supabase'
 export default function Layout({ children }) {
   const router = useRouter()
   const [profile, setProfile] = useState(null)
-  const [profileLoaded, setProfileLoaded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    // Use onAuthStateChange so we wait for the session to be fully restored
-    // from localStorage before deciding whether to redirect to /
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        if (!session) {
-          router.push('/')
-          return
-        }
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        setProfile(data)
-        setProfileLoaded(true)
-      } else if (event === 'SIGNED_OUT') {
-        router.push('/')
+    // Load profile for display purposes only — NO redirect logic here.
+    // Each page is responsible for its own auth/role check and redirects.
+    async function loadProfile() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+      if (data) setProfile(data)
+    }
+    loadProfile()
+
+    // Also listen for sign-out to clear profile
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setProfile(null)
       }
     })
     return () => subscription.unsubscribe()
@@ -36,6 +36,8 @@ export default function Layout({ children }) {
   // Load unread notification count
   useEffect(() => {
     async function loadUnreadCount() {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
       const { count } = await supabase
         .from('notifications')
         .select('id', { count: 'exact', head: true })
@@ -43,8 +45,6 @@ export default function Layout({ children }) {
       setUnreadCount(count || 0)
     }
     loadUnreadCount()
-
-    // Poll every 60 seconds for new notifications
     const interval = setInterval(loadUnreadCount, 60000)
     return () => clearInterval(interval)
   }, [])
@@ -54,6 +54,8 @@ export default function Layout({ children }) {
     setMenuOpen(false)
     if (router.pathname === '/notifications') {
       setTimeout(async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
         const { count } = await supabase
           .from('notifications')
           .select('id', { count: 'exact', head: true })
@@ -68,8 +70,7 @@ export default function Layout({ children }) {
     router.push('/')
   }
 
-  // Only determine role once profile is loaded — prevents associate nav flash on partner pages
-  const isPartner = profileLoaded ? profile?.role === 'partner' : null
+  const isPartner = profile?.role === 'partner'
 
   const partnerLinks = [
     { href: '/admin', label: 'Overview', exact: true },
@@ -89,8 +90,8 @@ export default function Layout({ children }) {
     { href: '/cases/new', label: '+ New Case', exact: true },
   ]
 
-  // While profile is loading, show no nav links (prevents flash of wrong role nav)
-  const navLinks = isPartner === null ? [] : (isPartner ? partnerLinks : associateLinks)
+  // Show no nav links until profile is loaded (prevents flash of wrong role nav)
+  const navLinks = profile ? (isPartner ? partnerLinks : associateLinks) : []
 
   function isActive(link) {
     if (link.matchFn) return link.matchFn()
@@ -120,7 +121,7 @@ export default function Layout({ children }) {
                 </span>
               </Link>
 
-              {/* Desktop nav links — only rendered once profile is loaded */}
+              {/* Desktop nav links */}
               <div className="hidden sm:flex items-center gap-4 text-sm">
                 {navLinks.map(link => (
                   <Link key={link.href} href={link.href}>
@@ -183,7 +184,7 @@ export default function Layout({ children }) {
                 Logout
               </button>
 
-              {/* Notification Bell — mobile only, beside hamburger */}
+              {/* Notification Bell — mobile only */}
               <Link href="/notifications">
                 <span
                   className="sm:hidden relative flex items-center justify-center w-9 h-9 rounded-lg cursor-pointer transition-colors"
@@ -243,7 +244,7 @@ export default function Layout({ children }) {
               </div>
             )}
 
-            {/* Nav links — only rendered once profile is loaded */}
+            {/* Nav links */}
             <div className="py-2">
               {navLinks.map(link => (
                 <Link key={link.href} href={link.href}>
