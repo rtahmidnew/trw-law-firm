@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Layout from '../../components/Layout'
 import StatusBadge from '../../components/StatusBadge'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../hooks/useAuth'
 import { IconGlobe, IconLock, IconClipboard, IconAlertTriangle, IconSearch, IconStar } from '../../components/Icons'
 
 function VisibilityBadge({ isPublic }) {
@@ -118,46 +119,26 @@ function InstructionsPreview() {
 }
 
 export default function AdminDashboard() {
-  const router = useRouter()
-  const [profile, setProfile] = useState(null)
+  const { profile, authLoading } = useAuth({ requiredRole: 'partner' })
   const [associates, setAssociates] = useState([])
   const [cases, setCases] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [togglingStarId, setTogglingStarId] = useState(null)
 
   useEffect(() => {
-    async function load() {
-      const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
-      if (!user) { router.push('/'); return }
-
-      // Retry profile fetch up to 3 times — prevents false redirect if DB is slow
-      let prof = null
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, role, full_name, email')
-          .eq('id', user.id)
-          .single()
-        if (data) { prof = data; break }
-        if (attempt < 2) await new Promise(r => setTimeout(r, 500))
-      }
-
-      if (!prof) { router.push('/'); return }
-      if (prof.role !== 'partner') { router.push('/dashboard'); return }
-      setProfile(prof)
-
+    if (!profile) return
+    async function loadData() {
       const [assocRes, casesRes] = await Promise.all([
         supabase.from('profiles').select('id, full_name, email, role').eq('role', 'associate'),
         supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
       ])
-
       setAssociates(assocRes.data || [])
       setCases(casesRes.data || [])
-      setLoading(false)
+      setDataLoading(false)
     }
-    load()
-  }, [])
+    loadData()
+  }, [profile])
 
   async function toggleStar(e, caseId, currentVal) {
     e.preventDefault()
@@ -175,6 +156,8 @@ export default function AdminDashboard() {
     }
     setTogglingStarId(null)
   }
+
+  const loading = authLoading || dataLoading
 
   if (loading) return (
     <Layout>

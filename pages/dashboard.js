@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Layout from '../components/Layout'
 import StatusBadge from '../components/StatusBadge'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../hooks/useAuth'
 import { IconGlobe, IconLock, IconClipboard, IconAlertTriangle, IconSearch, IconStar } from '../components/Icons'
 
 function VisibilityBadge({ isPublic }) {
@@ -111,45 +112,27 @@ function InstructionsPreview({ userId }) {
 }
 
 export default function Dashboard() {
-  const router = useRouter()
+  const { user, profile, authLoading } = useAuth({ requiredRole: 'associate' })
   const [cases, setCases] = useState([])
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [userId, setUserId] = useState(null)
+  const [dataLoading, setDataLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [togglingStarId, setTogglingStarId] = useState(null)
   const [myCaseIds, setMyCaseIds] = useState(new Set())
 
   useEffect(() => {
-    async function load() {
-      const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
-      if (!user) { router.push('/'); return }
-
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('id, role, full_name, email')
-        .eq('id', user.id)
-        .single()
-
-      if (prof?.role === 'partner') { router.push('/admin'); return }
-      setProfile(prof)
-      setUserId(user.id)
-
+    if (!user) return
+    async function loadData() {
       const [casesRes, myCasesRes] = await Promise.all([
         supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at').order('updated_at', { ascending: false }),
         supabase.from('user_cases').select('case_id').eq('user_id', user.id),
       ])
-
       setCases(casesRes.data || [])
       const myIds = new Set((myCasesRes.data || []).map(r => r.case_id))
-      // Also include cases assigned to this user
-      const allCases = casesRes.data || []
-      const myCasesList = allCases.filter(c => myIds.has(c.id) || c.assigned_to === user.id)
       setMyCaseIds(myIds)
-      setLoading(false)
+      setDataLoading(false)
     }
-    load()
-  }, [])
+    loadData()
+  }, [user])
 
   async function toggleStar(e, caseId, currentVal) {
     e.preventDefault()
@@ -167,6 +150,9 @@ export default function Dashboard() {
     }
     setTogglingStarId(null)
   }
+
+  const loading = authLoading || dataLoading
+  const userId = user?.id
 
   if (loading) return (
     <Layout>
