@@ -123,17 +123,20 @@ export default function AdminDashboard() {
   const { profile, authLoading } = useAuth({ requiredRole: 'partner' })
   const [associates, setAssociates] = useState([])
   const [cases, setCases] = useState([])
+  const [userCases, setUserCases] = useState([])
   const [dataLoading, setDataLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [togglingStarId, setTogglingStarId] = useState(null)
 
   async function loadData() {
-    const [assocRes, casesRes] = await Promise.all([
+    const [assocRes, casesRes, userCasesRes] = await Promise.all([
       supabase.from('profiles').select('id, full_name, role').eq('role', 'associate'),
       supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+      supabase.from('user_cases').select('user_id, case_id'),
     ])
     setAssociates(assocRes.data || [])
     setCases(casesRes.data || [])
+    setUserCases(userCasesRes.data || [])
     setDataLoading(false)
   }
 
@@ -200,11 +203,20 @@ export default function AdminDashboard() {
 
   const recentCases = cases.slice(0, 8)
 
-  const associateStats = associates.map(a => ({
-    ...a,
-    total: cases.filter(c => c.assigned_to === a.id).length,
-    open: cases.filter(c => c.assigned_to === a.id && c.status === 'open').length,
-  }))
+  const associateStats = associates.map(a => {
+    // Cases assigned directly to this associate
+    const assignedCaseIds = new Set(cases.filter(c => c.assigned_to === a.id).map(c => c.id))
+    // Cases linked via user_cases junction table
+    const junctionCaseIds = new Set(userCases.filter(uc => uc.user_id === a.id).map(uc => uc.case_id))
+    // Union of both sets
+    const allCaseIds = new Set([...assignedCaseIds, ...junctionCaseIds])
+    const allCases = cases.filter(c => allCaseIds.has(c.id))
+    return {
+      ...a,
+      total: allCases.length,
+      open: allCases.filter(c => c.status === 'open').length,
+    }
+  })
 
   const stats = [
     { label: 'Total Cases', value: cases.length, color: 'bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200', href: '/admin/all-cases' },
