@@ -37,7 +37,7 @@ export default function NewCase() {
 
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
       if (!user) { router.push('/'); return }
       setUserId(user.id)
     }

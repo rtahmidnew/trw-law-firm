@@ -40,7 +40,7 @@ export default function InvoicePage() {
   });
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getSession().then(({ data: { session: _sess } }) => { const user = _sess?.user;
       if (!user) { router.push('/'); return; }
       setUser(user);
     });

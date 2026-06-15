@@ -16,7 +16,7 @@ export default function AssociateView() {
   useEffect(() => {
     if (!associateId) return
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
       if (!user) { router.push('/'); return }
 
       const [assocRes, casesRes] = await Promise.all([

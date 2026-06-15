@@ -84,7 +84,7 @@ export default function CaseDetail() {
   }, [id])
 
   async function loadAll() {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     if (!user) { router.push('/'); return }
 
     const [profileRes, caseRes, timelineRes, docsRes, deadlinesRes, myCasesRes] = await Promise.all([
@@ -158,7 +158,7 @@ export default function CaseDetail() {
     }
     // Generate a new token
     const token = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + Date.now().toString(36)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     await supabase.from('client_portal_tokens').insert({
       case_id: id,
       token,
@@ -175,7 +175,7 @@ export default function CaseDetail() {
     if (!newEntry.trim()) return
     setAddingEntry(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     const { data, error } = await supabase
       .from('timeline_entries')
       .insert({ case_id: id, user_id: user.id, entry_text: newEntry.trim(), entry_date: newEntryDate || null })
@@ -225,7 +225,7 @@ export default function CaseDetail() {
     if (!files.length) return
     setUploading(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
 
     for (const file of files) {
       const filePath = `${id}/${Date.now()}_${file.name}`
@@ -411,7 +411,7 @@ export default function CaseDetail() {
   // ── My Cases Toggle ─────────────────────────────────────
   async function toggleMyCases() {
     setToggingMyCases(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     if (inMyCases) {
       await supabase.from('user_cases').delete().eq('user_id', user.id).eq('case_id', id)
       setInMyCases(false)

@@ -45,7 +45,7 @@ export default function InstructionsPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
       if (!user) { router.push('/'); return }
 
       const { data: prof } = await supabase
@@ -86,7 +86,7 @@ export default function InstructionsPage() {
   async function handleCreate(e) {
     e.preventDefault()
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     await supabase.from('instructions').insert({
       title: form.title,
       description: form.description || null,
@@ -126,7 +126,7 @@ export default function InstructionsPage() {
   }
 
   async function submitComplete(item) {
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
     await supabase.from('instructions').update({
       is_complete: true,
       completed_by: user.id,
