@@ -107,7 +107,7 @@ export default function CaseEmails() {
           <strong>Gmail Integration</strong> — Link email threads from info@trfirm.com to this case.
           Linked emails appear here and in the case timeline for a complete record of client communications.
           <br />
-          <span className="text-blue-600 text-xs mt-1 block">
+          <span className="text-gray-600 text-xs mt-1 block">
             To link: Open the Gmail thread, copy the thread ID from the URL (the long code after #inbox/), then paste it below.
           </span>
         </div>

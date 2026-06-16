@@ -24,11 +24,11 @@ function VisibilityBadge({ isPublic }) {
 function FileTypeLabel({ fileType }) {
   if (fileType === 'court') {
     return (
-      <span className="text-xs font-medium text-teal-700">Court File</span>
+      <span className="text-xs font-medium text-gray-600">Court File</span>
     )
   }
   return (
-    <span className="text-xs font-medium text-indigo-700">Chamber File</span>
+    <span className="text-xs font-medium text-gray-500">Chamber File</span>
   )
 }
 
@@ -333,11 +333,11 @@ export default function AllCasesPage() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {c.is_starred && <IconStar size={12} filled className="text-yellow-500 shrink-0" />}
+                      {c.is_starred && <IconStar size={12} filled className="text-gray-600 shrink-0" />}
                       <div>
                         <p className="font-medium text-gray-900">{c.client_name}</p>
                         {c.file_number && (
-                          <p className={`text-xs font-mono font-semibold ${(c.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>
+                          <p className={`text-xs font-mono font-semibold ${(c.file_type || 'chamber') === 'court' ? 'text-gray-900' : 'text-gray-700'}`}>
                             {c.file_number}
                           </p>
                         )}

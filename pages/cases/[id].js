@@ -549,7 +549,7 @@ export default function CaseDetail() {
                   </span>
                 )}
               </div>
-              <p className="text-blue-700 font-medium mt-1">{caseData.case_type}</p>
+              <p className="text-gray-800 font-medium mt-1">{caseData.case_type}</p>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-gray-600">
                 {caseData.client_contact && (
                   <p><span className="text-gray-400">Contact:</span> {caseData.client_contact}</p>
@@ -564,7 +564,7 @@ export default function CaseDetail() {
                   <p><span className="text-gray-400">Court No.:</span> {caseData.court_case_number}</p>
                 )}
                 {caseData.file_number && (
-                  <p><span className="text-gray-400">File No.:</span> <span className={`font-mono font-semibold ${(caseData.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>{caseData.file_number}</span></p>
+                  <p><span className="text-gray-400">File No.:</span> <span className={`font-mono font-semibold ${(caseData.file_type || 'chamber') === 'court' ? 'text-gray-900' : 'text-gray-700'}`}>{caseData.file_number}</span></p>
                 )}
                 <p><span className="text-gray-400">Opened:</span> {new Date(caseData.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
@@ -585,8 +585,8 @@ export default function CaseDetail() {
                   title={caseData.is_starred ? 'Remove from starred' : 'Star this case'}
                   className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
                     caseData.is_starred
-                      ? 'border-yellow-400 bg-yellow-50 text-yellow-600 hover:bg-yellow-100'
-                      : 'border-gray-300 text-gray-400 hover:border-yellow-400 hover:text-yellow-500'
+                      ? 'border-gray-400 bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'border-gray-300 text-gray-400 hover:border-gray-500 hover:text-gray-600'
                   }`}
                 >
                   <IconStar size={12} filled={caseData.is_starred} />
@@ -967,7 +967,7 @@ export default function CaseDetail() {
                             })}
                           </p>
                           {entry.hide_from_client && (
-                            <span className="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-medium">Hidden from client</span>
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Hidden from client</span>
                           )}
                         </div>
                       </div>
@@ -1067,7 +1067,7 @@ export default function CaseDetail() {
                       {renamingDoc === doc.id ? (
                         <div className="flex gap-1">
                           <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }} className="flex-1 text-xs border border-blue-400 rounded px-1 py-0.5 focus:outline-none" />
-                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700"><IconCheck size={12} /></button>
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-gray-700"><IconCheck size={12} /></button>
                           <button onClick={() => setRenamingDoc(null)} className="text-gray-400"><IconX size={12} /></button>
                         </div>
                       ) : (
@@ -1113,7 +1113,7 @@ export default function CaseDetail() {
                       {renamingDoc === doc.id ? (
                         <div className="flex items-center gap-1">
                           <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveRename(doc); if (e.key === 'Escape') setRenamingDoc(null) }} className="flex-1 text-sm border border-blue-400 rounded px-2 py-0.5 focus:outline-none" />
-                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-blue-700 px-1"><IconCheck size={14} /></button>
+                          <button onClick={() => saveRename(doc)} disabled={renameSaving} className="text-gray-700 px-1"><IconCheck size={14} /></button>
                           <button onClick={() => setRenamingDoc(null)} className="text-gray-400 px-1"><IconX size={14} /></button>
                         </div>
                       ) : (
@@ -1140,7 +1140,7 @@ export default function CaseDetail() {
                         title={doc.hide_from_client ? 'Hidden from client — click to show' : 'Visible to client — click to hide'}
                         className={`inline-flex items-center gap-1 text-xs border rounded px-2 py-1 transition-colors ${
                           doc.hide_from_client
-                            ? 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100'
+                            ? 'border-gray-300 text-gray-600 bg-gray-50 hover:bg-gray-100'
                             : 'border-gray-200 text-gray-400 hover:text-gray-600'
                         }`}
                       >

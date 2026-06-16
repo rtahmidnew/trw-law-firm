@@ -198,7 +198,7 @@ export default function ClientPortal() {
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                   hearingDays === 0 ? 'bg-red-100' : hearingDays !== null && hearingDays <= 3 ? 'bg-orange-100' : hearingDays !== null && hearingDays <= 7 ? 'bg-yellow-100' : 'bg-gray-100'
                 }`}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className={hearingDays === 0 ? 'text-red-600' : hearingDays !== null && hearingDays <= 3 ? 'text-orange-600' : hearingDays !== null && hearingDays <= 7 ? 'text-yellow-600' : 'text-gray-600'}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" className="text-gray-700">
                     <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
                   </svg>
                 </div>

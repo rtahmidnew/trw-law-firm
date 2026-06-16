@@ -46,7 +46,13 @@ export default function NewCase() {
   }, [])
 
   function handleChange(e) {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    let value = e.target.value
+    // Auto-expand 2-digit years in file_number: PREFIX-YY-REST → PREFIX-20YY-REST
+    if (e.target.name === 'file_number') {
+      value = value.replace(/^([A-Za-z]+-)(2[0-9])(-)/,
+        (_, prefix, yy, dash) => `${prefix}20${yy}${dash}`)
+    }
+    setForm(prev => ({ ...prev, [e.target.name]: value }))
   }
 
   function setFileType(type) {
@@ -120,8 +126,8 @@ export default function NewCase() {
                       : 'border-gray-200 text-gray-500 hover:border-indigo-300 hover:bg-indigo-50/50'
                   }`}
                 >
-                  <span className={`text-lg ${isChamber ? 'text-indigo-600' : 'text-gray-400'}`}>⚖</span>
-                  <span>Chamber Filing</span>
+                  <svg className={`w-5 h-5 ${isChamber ? 'text-gray-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-4 9 4M3 6v12l9 4 9-4V6M12 2v20M3 12h18" /></svg>
+                  <span>Chamber File</span>
                   <span className="text-xs font-normal text-gray-400">Advisory, drafting, non-court matters</span>
                 </button>
                 <button
@@ -133,19 +139,19 @@ export default function NewCase() {
                       : 'border-gray-200 text-gray-500 hover:border-teal-300 hover:bg-teal-50/50'
                   }`}
                 >
-                  <span className={`text-lg ${isCourt ? 'text-teal-600' : 'text-gray-400'}`}>🏛</span>
-                  <span>Court Filing</span>
+                  <svg className={`w-5 h-5 ${isCourt ? 'text-gray-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 10v11M12 10v11M16 10v11" /></svg>
+                  <span>Court File</span>
                   <span className="text-xs font-normal text-gray-400">Litigation, court proceedings</span>
                 </button>
               </div>
               {isChamber && (
                 <p className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2">
-                  Chamber Filing — internal file number (TLS-YY-NNN format), no court case number required.
+                  Chamber File — internal file number (TRW-YYYY-NNN format), no court case number required.
                 </p>
               )}
               {isCourt && (
                 <p className="mt-2 text-xs text-teal-700 bg-teal-50 rounded-lg px-3 py-2">
-                  Court Filing — requires court name and court case number. Hearing dates managed in Case Diary.
+                  Court File — requires court name and court case number. Hearing dates managed in Case Diary.
                 </p>
               )}
             </div>
@@ -214,7 +220,7 @@ export default function NewCase() {
                         ? 'border-indigo-200 focus:ring-indigo-500 bg-indigo-50/30'
                         : 'border-teal-200 focus:ring-teal-500 bg-teal-50/30'
                     }`}
-                    placeholder={isChamber ? 'e.g. TLS-25-001' : 'e.g. TRW-2025-001'}
+                    placeholder={isChamber ? 'e.g. TRW-2026-001' : 'e.g. TRW-2026-001'}
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -322,7 +328,7 @@ export default function NewCase() {
                   : 'bg-indigo-700 hover:bg-indigo-800'
               }`}
             >
-              {saving ? 'Creating case...' : `Create ${isCourt ? 'Court' : 'Chamber'} Case File`}
+              {saving ? 'Creating case...' : `Create ${isCourt ? 'Court' : 'Chamber'} File`}
             </button>
           </form>
         </div>

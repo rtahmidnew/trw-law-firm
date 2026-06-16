@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                 title={c.is_starred ? 'Remove star' : 'Star this case'}
                 className={`p-1.5 rounded-lg transition-all ${
                   c.is_starred
-                    ? 'text-yellow-500 hover:text-yellow-600'
+                    ? 'text-gray-700 hover:text-gray-900'
                     : 'text-gray-300 hover:text-yellow-400'
                 }`}
               >
@@ -381,7 +381,7 @@ export default function AdminDashboard() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-base font-semibold text-gray-800 flex items-center gap-1.5">
-                      <IconStar size={14} filled className="text-yellow-500" /> Starred Cases
+                      <IconStar size={14} filled className="text-gray-700" /> Starred Cases
                     </h2>
                   </div>
                   <div className="space-y-2">

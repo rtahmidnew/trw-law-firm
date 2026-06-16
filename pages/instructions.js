@@ -193,7 +193,7 @@ export default function InstructionsPage() {
       {/* New Task Form */}
       {showForm && isPartner && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
-          <h3 className="text-sm font-semibold text-blue-900 mb-4">Create New Task / Instruction</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Create New Task / Instruction</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-gray-700 mb-1">Task Title *</label>
@@ -376,7 +376,7 @@ export default function InstructionsPage() {
                             By: <span className="text-gray-600">{item.created_by_profile?.full_name || 'Partner'}</span>
                           </span>
                           {item.assigned_to_profile ? (
-                            <span className="text-xs text-blue-600">
+                            <span className="text-xs text-gray-600">
                               → {item.assigned_to_profile.full_name}
                             </span>
                           ) : (
@@ -402,12 +402,12 @@ export default function InstructionsPage() {
                         {/* Completion info */}
                         {item.is_complete && (
                           <div className="mt-2 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-                            <p className="text-xs text-green-700">
+                            <p className="text-xs text-gray-600">
                               Completed by <strong>{item.completed_by_profile?.full_name || 'Associate'}</strong>
                               {item.completed_at && ` on ${new Date(item.completed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                             </p>
                             {item.completed_note && (
-                              <p className="text-xs text-green-600 mt-1 italic">"{item.completed_note}"</p>
+                              <p className="text-xs text-gray-500 mt-1 italic">"{item.completed_note}"</p>
                             )}
                           </div>
                         )}
@@ -415,7 +415,7 @@ export default function InstructionsPage() {
                         {/* Completion note input */}
                         {isCompleting && (
                           <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                            <p className="text-xs font-medium text-blue-800">Add a completion note (optional):</p>
+                            <p className="text-xs font-medium text-gray-800">Add a completion note (optional):</p>
                             <textarea
                               value={completeNote}
                               onChange={e => setCompleteNote(e.target.value)}
