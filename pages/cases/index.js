@@ -21,6 +21,52 @@ function VisibilityBadge({ isPublic }) {
   )
 }
 
+function FileTypeBadge({ fileType }) {
+  if (fileType === 'court') {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">
+        Court Filing
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+      Chamber Filing
+    </span>
+  )
+}
+
+const SORT_OPTIONS = [
+  { key: 'updated_desc', label: 'Last Updated' },
+  { key: 'file_number_asc', label: 'File Number' },
+  { key: 'client_asc', label: 'Client Name (A–Z)' },
+  { key: 'client_desc', label: 'Client Name (Z–A)' },
+  { key: 'created_desc', label: 'Date Created (Newest)' },
+  { key: 'created_asc', label: 'Date Created (Oldest)' },
+  { key: 'associate_asc', label: 'Associate Name' },
+]
+
+function sortCases(cases, sortKey) {
+  const arr = [...cases]
+  switch (sortKey) {
+    case 'file_number_asc':
+      return arr.sort((a, b) => (a.file_number || '').localeCompare(b.file_number || '', undefined, { numeric: true }))
+    case 'client_asc':
+      return arr.sort((a, b) => (a.client_name || '').localeCompare(b.client_name || ''))
+    case 'client_desc':
+      return arr.sort((a, b) => (b.client_name || '').localeCompare(a.client_name || ''))
+    case 'created_desc':
+      return arr.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    case 'created_asc':
+      return arr.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    case 'associate_asc':
+      return arr.sort((a, b) => (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
+    case 'updated_desc':
+    default:
+      return arr.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+  }
+}
+
 export default function AllCasesPage() {
   const router = useRouter()
   const [cases, setCases] = useState([])
@@ -31,6 +77,8 @@ export default function AllCasesPage() {
   const [viewMode, setViewMode] = useState('all') // 'all' or 'mine'
   const [search, setSearch] = useState('')
   const [myCaseIds, setMyCaseIds] = useState(new Set())
+  const [sortKey, setSortKey] = useState('updated_desc')
+  const [fileTypeFilter, setFileTypeFilter] = useState('all') // 'all', 'chamber', 'court'
 
   // Read query params on mount
   useEffect(() => {
@@ -54,7 +102,7 @@ export default function AllCasesPage() {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('id, role, full_name, email')
+        .select('id, role, full_name')
         .eq('id', user.id)
         .single()
 
@@ -63,7 +111,7 @@ export default function AllCasesPage() {
 
       // Partners see all cases; associates only see public cases (enforced by RLS)
       const [casesRes, myCasesRes] = await Promise.all([
-        supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
+        supabase.from('cases').select('id, client_name, case_type, status, file_number, court_case_number, is_starred, is_public, assigned_to, updated_at, created_at, file_type, profiles!cases_assigned_to_fkey(full_name)').order('updated_at', { ascending: false }),
         supabase.from('user_cases').select('case_id').eq('user_id', user.id),
       ])
 
@@ -79,6 +127,7 @@ export default function AllCasesPage() {
   const filtered = cases.filter(c => {
     const matchStatus = filter === 'all' || c.status === filter
     const matchMine = viewMode === 'all' || myCaseIds.has(c.id) || c.assigned_to === userId
+    const matchFileType = fileTypeFilter === 'all' || (c.file_type || 'chamber') === fileTypeFilter
     const q = search.toLowerCase().trim()
     const matchSearch = !q ||
       (c.client_name || '').toLowerCase().includes(q) ||
@@ -86,8 +135,10 @@ export default function AllCasesPage() {
       (c.court_case_number || '').toLowerCase().includes(q) ||
       (c.file_number || '').toLowerCase().includes(q) ||
       (c.profiles?.full_name || '').toLowerCase().includes(q)
-    return matchStatus && matchMine && matchSearch
+    return matchStatus && matchMine && matchSearch && matchFileType
   })
+
+  const sorted = sortCases(filtered, sortKey)
 
   function handleFilterChange(newFilter) {
     setFilter(newFilter)
@@ -117,6 +168,9 @@ export default function AllCasesPage() {
   const myCasesCount = cases.filter(isMine).length
   const allCount = viewMode === 'mine' ? myCasesCount : cases.length
 
+  const chamberCount = cases.filter(c => (c.file_type || 'chamber') === 'chamber').length
+  const courtCount = cases.filter(c => c.file_type === 'court').length
+
   const pageTitle = viewMode === 'mine'
     ? (filter === 'open' ? 'My Open Cases' : filter === 'closed' ? 'My Closed Cases' : 'My Cases')
     : (filter === 'open' ? 'Open Cases' : filter === 'closed' ? 'Closed Cases' : 'All Cases')
@@ -126,7 +180,7 @@ export default function AllCasesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{pageTitle}</h1>
-          <p className="text-gray-500 text-sm">{filtered.length} of {allCount} cases</p>
+          <p className="text-gray-500 text-sm">{sorted.length} of {allCount} cases</p>
         </div>
         <Link href="/cases/new">
           <button className="inline-flex items-center gap-2 bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
@@ -159,7 +213,41 @@ export default function AllCasesPage() {
         </button>
       </div>
 
-      {/* Search + Status Filter */}
+      {/* File Type Filter Pills */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => setFileTypeFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            fileTypeFilter === 'all'
+              ? 'bg-gray-800 text-white border-gray-800'
+              : 'border-gray-300 text-gray-600 hover:border-gray-500'
+          }`}
+        >
+          All Types ({chamberCount + courtCount})
+        </button>
+        <button
+          onClick={() => setFileTypeFilter('chamber')}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            fileTypeFilter === 'chamber'
+              ? 'bg-indigo-700 text-white border-indigo-700'
+              : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+          }`}
+        >
+          Chamber Filings ({chamberCount})
+        </button>
+        <button
+          onClick={() => setFileTypeFilter('court')}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            fileTypeFilter === 'court'
+              ? 'bg-teal-700 text-white border-teal-700'
+              : 'border-teal-200 text-teal-700 hover:bg-teal-50'
+          }`}
+        >
+          Court Filings ({courtCount})
+        </button>
+      </div>
+
+      {/* Search + Status Filter + Sort */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="relative flex-1">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
@@ -198,16 +286,29 @@ export default function AllCasesPage() {
             </button>
           ))}
         </div>
+        {/* Sort dropdown */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">Sort by:</label>
+          <select
+            value={sortKey}
+            onChange={e => setSortKey(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {SORT_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Cases Table */}
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <div className="flex justify-center mb-2"><IconFolder size={32} className="text-gray-300" /></div>
           <p>No cases match your filter.</p>
-          {(filter !== 'all' || search) && (
+          {(filter !== 'all' || search || fileTypeFilter !== 'all') && (
             <button
-              onClick={() => { setFilter('all'); setSearch('') }}
+              onClick={() => { setFilter('all'); setSearch(''); setFileTypeFilter('all') }}
               className="mt-3 text-blue-700 hover:underline text-sm"
             >
               Clear filters
@@ -228,7 +329,7 @@ export default function AllCasesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map(c => (
+              {sorted.map(c => (
                 <tr
                   key={c.id}
                   onClick={() => router.push(`/cases/${c.id}`)}
@@ -238,8 +339,15 @@ export default function AllCasesPage() {
                     <div className="flex items-center gap-2">
                       {c.is_starred && <IconStar size={12} filled className="text-yellow-500 shrink-0" />}
                       <div>
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <FileTypeBadge fileType={c.file_type || 'chamber'} />
+                        </div>
                         <p className="font-medium text-gray-900">{c.client_name}</p>
-                        {c.file_number && <p className="text-xs text-gray-400 font-mono">{c.file_number}</p>}
+                        {c.file_number && (
+                          <p className={`text-xs font-mono font-semibold ${(c.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>
+                            {c.file_number}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>

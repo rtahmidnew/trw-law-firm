@@ -24,6 +24,7 @@ export default function NewCase() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
+    file_type: 'chamber',
     file_number: '',
     client_name: '',
     client_contact: '',
@@ -46,6 +47,15 @@ export default function NewCase() {
 
   function handleChange(e) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  function setFileType(type) {
+    setForm(prev => ({
+      ...prev,
+      file_type: type,
+      // Clear court fields when switching to chamber
+      ...(type === 'chamber' ? { court_name: '', court_case_number: '' } : {}),
+    }))
   }
 
   async function handleSubmit(e) {
@@ -72,6 +82,9 @@ export default function NewCase() {
     router.push(`/cases/${data.id}`)
   }
 
+  const isChamber = form.file_type === 'chamber'
+  const isCourt = form.file_type === 'court'
+
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
@@ -93,6 +106,50 @@ export default function NewCase() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Filing Type Selector */}
+            <div className="border-b border-gray-100 pb-5">
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Filing Type</h2>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFileType('chamber')}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    isChamber
+                      ? 'bg-indigo-50 border-indigo-600 text-indigo-800'
+                      : 'border-gray-200 text-gray-500 hover:border-indigo-300 hover:bg-indigo-50/50'
+                  }`}
+                >
+                  <span className={`text-lg ${isChamber ? 'text-indigo-600' : 'text-gray-400'}`}>⚖</span>
+                  <span>Chamber Filing</span>
+                  <span className="text-xs font-normal text-gray-400">Advisory, drafting, non-court matters</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFileType('court')}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    isCourt
+                      ? 'bg-teal-50 border-teal-600 text-teal-800'
+                      : 'border-gray-200 text-gray-500 hover:border-teal-300 hover:bg-teal-50/50'
+                  }`}
+                >
+                  <span className={`text-lg ${isCourt ? 'text-teal-600' : 'text-gray-400'}`}>🏛</span>
+                  <span>Court Filing</span>
+                  <span className="text-xs font-normal text-gray-400">Litigation, court proceedings</span>
+                </button>
+              </div>
+              {isChamber && (
+                <p className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2">
+                  Chamber Filing — internal file number (TLS-YY-NNN format), no court case number required.
+                </p>
+              )}
+              {isCourt && (
+                <p className="mt-2 text-xs text-teal-700 bg-teal-50 rounded-lg px-3 py-2">
+                  Court Filing — requires court name and court case number. Hearing dates managed in Case Diary.
+                </p>
+              )}
+            </div>
+
             {/* Client info */}
             <div className="border-b border-gray-100 pb-5">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Client Information</h2>
@@ -152,8 +209,12 @@ export default function NewCase() {
                     name="file_number"
                     value={form.file_number}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. TRW-2025-001"
+                    className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
+                      isChamber
+                        ? 'border-indigo-200 focus:ring-indigo-500 bg-indigo-50/30'
+                        : 'border-teal-200 focus:ring-teal-500 bg-teal-50/30'
+                    }`}
+                    placeholder={isChamber ? 'e.g. TLS-25-001' : 'e.g. TRW-2025-001'}
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -171,32 +232,35 @@ export default function NewCase() {
               </div>
             </div>
 
-            {/* Court info */}
-            <div className="border-b border-gray-100 pb-5">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Court Information</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Court Name</label>
-                  <input
-                    name="court_name"
-                    value={form.court_name}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. High Court Division, Dhaka"
-                  />
+            {/* Court info — only for court filings */}
+            {isCourt && (
+              <div className="border-b border-gray-100 pb-5">
+                <h2 className="text-sm font-semibold text-teal-600 uppercase tracking-wide mb-3">Court Information</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Court Name</label>
+                    <input
+                      name="court_name"
+                      value={form.court_name}
+                      onChange={handleChange}
+                      className="w-full border border-teal-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-teal-50/30"
+                      placeholder="e.g. High Court Division, Dhaka"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Court Case Number</label>
+                    <input
+                      name="court_case_number"
+                      value={form.court_case_number}
+                      onChange={handleChange}
+                      className="w-full border border-teal-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-teal-50/30"
+                      placeholder="Official court case number"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Court Case Number</label>
-                  <input
-                    name="court_case_number"
-                    value={form.court_case_number}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Official court case number"
-                  />
-                </div>
+                <p className="text-xs text-gray-400 mt-2">Hearing dates and next steps are managed in the Case Diary section.</p>
               </div>
-            </div>
+            )}
 
             {/* Status + Visibility */}
             <div className="border-b border-gray-100 pb-5">
@@ -252,9 +316,13 @@ export default function NewCase() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-60"
+              className={`w-full text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-60 ${
+                isCourt
+                  ? 'bg-teal-700 hover:bg-teal-800'
+                  : 'bg-indigo-700 hover:bg-indigo-800'
+              }`}
             >
-              {saving ? 'Creating case...' : 'Create Case File'}
+              {saving ? 'Creating case...' : `Create ${isCourt ? 'Court' : 'Chamber'} Case File`}
             </button>
           </form>
         </div>

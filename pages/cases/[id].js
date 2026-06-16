@@ -89,7 +89,7 @@ export default function CaseDetail() {
 
     const [profileRes, caseRes, timelineRes, docsRes, deadlinesRes, myCasesRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('cases').select('*').eq('id', id).single(),
+      supabase.from('cases').select('*, file_type').eq('id', id).single(),
       supabase.from('timeline_entries').select('*, profiles(full_name)').eq('case_id', id).order('created_at', { ascending: false }),
       supabase.from('documents').select('*').eq('case_id', id).order('uploaded_at', { ascending: false }),
       supabase.from('deadlines').select('*').eq('case_id', id).order('due_date', { ascending: true }),
@@ -115,6 +115,7 @@ export default function CaseDetail() {
       court_name: caseData.court_name || '',
       court_case_number: caseData.court_case_number || '',
       file_number: caseData.file_number || '',
+      file_type: caseData.file_type || 'chamber',
     })
     setEditing(true)
   }
@@ -132,6 +133,7 @@ export default function CaseDetail() {
         court_name: editForm.court_name.trim(),
         court_case_number: editForm.court_case_number.trim(),
         file_number: editForm.file_number.trim(),
+        file_type: editForm.file_type || 'chamber',
       })
       .eq('id', id)
       .select()
@@ -530,6 +532,11 @@ export default function CaseDetail() {
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
+                {(caseData.file_type || 'chamber') === 'court' ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">Court Filing</span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">Chamber Filing</span>
+                )}
                 <h1 className="text-2xl font-bold text-gray-900">{caseData.client_name}</h1>
                 <StatusBadge status={caseData.status} />
                 {caseData.is_public !== false ? (
@@ -557,7 +564,7 @@ export default function CaseDetail() {
                   <p><span className="text-gray-400">Court No.:</span> {caseData.court_case_number}</p>
                 )}
                 {caseData.file_number && (
-                  <p><span className="text-gray-400">File No.:</span> <span className="font-mono">{caseData.file_number}</span></p>
+                  <p><span className="text-gray-400">File No.:</span> <span className={`font-mono font-semibold ${(caseData.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>{caseData.file_number}</span></p>
                 )}
                 <p><span className="text-gray-400">Opened:</span> {new Date(caseData.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
@@ -684,6 +691,34 @@ export default function CaseDetail() {
           /* ── EDIT MODE ── */
           <div>
             <h2 className="text-lg font-bold text-gray-900 mb-4">Edit Case Details</h2>
+            {/* File Type Selector */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-500 mb-2">Filing Type</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditForm(p => ({ ...p, file_type: 'chamber' }))}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                    (editForm.file_type || 'chamber') === 'chamber'
+                      ? 'bg-indigo-700 text-white border-indigo-700'
+                      : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                  }`}
+                >
+                  Chamber Filing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditForm(p => ({ ...p, file_type: 'court' }))}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                    editForm.file_type === 'court'
+                      ? 'bg-teal-700 text-white border-teal-700'
+                      : 'border-teal-200 text-teal-700 hover:bg-teal-50'
+                  }`}
+                >
+                  Court Filing
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-500 mb-1">Client Name <span className="text-red-500">*</span></label>
@@ -722,24 +757,28 @@ export default function CaseDetail() {
                   placeholder="Opposing party name"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Court / Forum</label>
-                <input
-                  value={editForm.court_name}
-                  onChange={e => setEditForm(p => ({ ...p, court_name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. High Court Division"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Court Case Number</label>
-                <input
-                  value={editForm.court_case_number}
-                  onChange={e => setEditForm(p => ({ ...p, court_case_number: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. WP/1234/2026"
-                />
-              </div>
+              {editForm.file_type === 'court' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Court / Forum</label>
+                    <input
+                      value={editForm.court_name}
+                      onChange={e => setEditForm(p => ({ ...p, court_name: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="e.g. High Court Division"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Court Case Number</label>
+                    <input
+                      value={editForm.court_case_number}
+                      onChange={e => setEditForm(p => ({ ...p, court_case_number: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      placeholder="e.g. WP/1234/2026"
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">File Number</label>
                 <input
