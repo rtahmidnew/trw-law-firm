@@ -21,18 +21,14 @@ function VisibilityBadge({ isPublic }) {
   )
 }
 
-function FileTypeBadge({ fileType }) {
+function FileTypeLabel({ fileType }) {
   if (fileType === 'court') {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">
-        Court Filing
-      </span>
+      <span className="text-xs font-medium text-teal-700">Court File</span>
     )
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
-      Chamber Filing
-    </span>
+    <span className="text-xs font-medium text-indigo-700">Chamber File</span>
   )
 }
 
@@ -213,37 +209,37 @@ export default function AllCasesPage() {
         </button>
       </div>
 
-      {/* File Type Filter Pills */}
-      <div className="flex gap-2 mb-4 flex-wrap">
+      {/* File Type Filter Buttons — same style as Public/Private visibility */}
+      <div className="flex gap-2 mb-4">
         <button
           onClick={() => setFileTypeFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
             fileTypeFilter === 'all'
-              ? 'bg-gray-800 text-white border-gray-800'
-              : 'border-gray-300 text-gray-600 hover:border-gray-500'
+              ? 'bg-blue-700 text-white border-blue-700'
+              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
           }`}
         >
-          All Types ({chamberCount + courtCount})
+          All Files
         </button>
         <button
           onClick={() => setFileTypeFilter('chamber')}
-          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
             fileTypeFilter === 'chamber'
-              ? 'bg-indigo-700 text-white border-indigo-700'
-              : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+              ? 'bg-blue-700 text-white border-blue-700'
+              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
           }`}
         >
-          Chamber Filings ({chamberCount})
+          Chamber File
         </button>
         <button
           onClick={() => setFileTypeFilter('court')}
-          className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
             fileTypeFilter === 'court'
-              ? 'bg-teal-700 text-white border-teal-700'
-              : 'border-teal-200 text-teal-700 hover:bg-teal-50'
+              ? 'bg-blue-700 text-white border-blue-700'
+              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
           }`}
         >
-          Court Filings ({courtCount})
+          Court File
         </button>
       </div>
 
@@ -339,15 +335,13 @@ export default function AllCasesPage() {
                     <div className="flex items-center gap-2">
                       {c.is_starred && <IconStar size={12} filled className="text-yellow-500 shrink-0" />}
                       <div>
-                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <FileTypeBadge fileType={c.file_type || 'chamber'} />
-                        </div>
                         <p className="font-medium text-gray-900">{c.client_name}</p>
                         {c.file_number && (
                           <p className={`text-xs font-mono font-semibold ${(c.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>
                             {c.file_number}
                           </p>
                         )}
+                        <FileTypeLabel fileType={c.file_type || 'chamber'} />
                       </div>
                     </div>
                   </td>
