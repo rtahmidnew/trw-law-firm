@@ -296,11 +296,11 @@ export default function AllCases() {
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{c.client_name}</p>
                       {c.file_number && (
-                        <p className={`text-xs font-mono font-semibold ${isCourt ? 'text-gray-900' : 'text-gray-700'}`}>
+                        <p className={`text-xs font-mono font-semibold ${isCourt ? 'text-teal-700' : 'text-indigo-700'}`}>
                           {c.file_number}
                         </p>
                       )}
-                      <p className={`text-xs font-medium mt-0.5 ${isCourt ? 'text-gray-600' : 'text-gray-500'}`}>
+                      <p className={`text-xs font-medium mt-0.5 ${isCourt ? 'text-teal-600' : 'text-indigo-600'}`}>
                         {isCourt ? 'Court File' : 'Chamber File'}
                       </p>
                     </td>
