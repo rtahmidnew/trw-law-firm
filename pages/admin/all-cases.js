@@ -23,7 +23,8 @@ function VisibilityBadge({ isPublic }) {
 
 const SORT_OPTIONS = [
   { key: 'updated_desc', label: 'Last Updated' },
-  { key: 'file_number_asc', label: 'File Number' },
+  { key: 'file_number_asc', label: 'File Number (Oldest First)' },
+  { key: 'file_number_desc', label: 'File Number (Newest First)' },
   { key: 'client_asc', label: 'Client Name (A–Z)' },
   { key: 'client_desc', label: 'Client Name (Z–A)' },
   { key: 'created_desc', label: 'Date Created (Newest)' },
@@ -31,11 +32,40 @@ const SORT_OPTIONS = [
   { key: 'associate_asc', label: 'Associate Name' },
 ]
 
+// Parse a file number like "TLS-22-008" or "TRW-25-112" into sortable parts
+function parseFileNumber(fn) {
+  if (!fn) return { prefix: 'ZZZ', year: 9999, seq: 9999, raw: '' }
+  // Normalise: remove spaces, uppercase
+  const s = fn.trim().toUpperCase().replace(/\s+/g, '-')
+  // Match patterns like PREFIX-YY-SEQ or PREFIX-YYYY-SEQ
+  const m = s.match(/^([A-Z]+)-?(\d{2,4})-?(.+)$/)
+  if (!m) return { prefix: s, year: 0, seq: 0, raw: s }
+  const prefix = m[1]
+  const year = parseInt(m[2], 10)
+  // seq may itself contain dashes (e.g. "KH-001"), use localeCompare for that part
+  const seq = m[3]
+  return { prefix, year, seq, raw: s }
+}
+
+function compareFileNumbers(a, b) {
+  const pa = parseFileNumber(a.file_number)
+  const pb = parseFileNumber(b.file_number)
+  if (pa.prefix !== pb.prefix) return pa.prefix.localeCompare(pb.prefix)
+  if (pa.year !== pb.year) return pa.year - pb.year
+  // Compare seq numerically where possible, fall back to locale
+  const na = parseInt(pa.seq, 10)
+  const nb = parseInt(pb.seq, 10)
+  if (!isNaN(na) && !isNaN(nb)) return na - nb
+  return pa.seq.localeCompare(pb.seq, undefined, { numeric: true })
+}
+
 function sortCases(cases, sortKey) {
   const arr = [...cases]
   switch (sortKey) {
     case 'file_number_asc':
-      return arr.sort((a, b) => (a.file_number || '').localeCompare(b.file_number || '', undefined, { numeric: true }))
+      return arr.sort((a, b) => compareFileNumbers(a, b))
+    case 'file_number_desc':
+      return arr.sort((a, b) => compareFileNumbers(b, a))
     case 'client_asc':
       return arr.sort((a, b) => (a.client_name || '').localeCompare(b.client_name || ''))
     case 'client_desc':
