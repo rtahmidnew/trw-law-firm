@@ -41,6 +41,25 @@ const SORT_OPTIONS = [
   { key: 'associate_asc', label: 'Associate Name' },
 ]
 
+const YEAR_OPTIONS = [
+  { key: 'all', label: 'All Years' },
+  { key: '2022', label: '2022' },
+  { key: '2023', label: '2023' },
+  { key: '2024', label: '2024' },
+  { key: '2025', label: '2025' },
+  { key: '2026', label: '2026' },
+]
+
+// Parse file number year for year-based filtering
+function getFileYear(fileNumber) {
+  if (!fileNumber) return null
+  const s = fileNumber.trim().toUpperCase().replace(/\s+/g, '-')
+  const m = s.match(/^[A-Z]+-?(\d{2,4})-?/)
+  if (!m) return null
+  const y = parseInt(m[1], 10)
+  return y < 100 ? y + 2000 : y
+}
+
 function sortCases(cases, sortKey) {
   const arr = [...cases]
   switch (sortKey) {
@@ -73,7 +92,8 @@ export default function AllCasesPage() {
   const [search, setSearch] = useState('')
   const [myCaseIds, setMyCaseIds] = useState(new Set())
   const [sortKey, setSortKey] = useState('updated_desc')
-  const [fileTypeFilter, setFileTypeFilter] = useState('all') // 'all', 'chamber', 'court'
+  const [fileTypeFilter, setFileTypeFilter] = useState('all') // 'all', 'chamber', 'temporary', 'court'
+  const [yearFilter, setYearFilter] = useState('all')
 
   // Read query params on mount
   useEffect(() => {
@@ -123,6 +143,7 @@ export default function AllCasesPage() {
     const matchStatus = filter === 'all' || c.status === filter
     const matchMine = viewMode === 'all' || myCaseIds.has(c.id) || c.assigned_to === userId
     const matchFileType = fileTypeFilter === 'all' || (c.file_type || 'chamber') === fileTypeFilter
+    const matchYear = yearFilter === 'all' || String(getFileYear(c.file_number)) === yearFilter
     const q = search.toLowerCase().trim()
     const matchSearch = !q ||
       (c.client_name || '').toLowerCase().includes(q) ||
@@ -130,7 +151,7 @@ export default function AllCasesPage() {
       (c.court_case_number || '').toLowerCase().includes(q) ||
       (c.file_number || '').toLowerCase().includes(q) ||
       (c.profiles?.full_name || '').toLowerCase().includes(q)
-    return matchStatus && matchMine && matchSearch && matchFileType
+    return matchStatus && matchMine && matchSearch && matchFileType && matchYear
   })
 
   const sorted = sortCases(filtered, sortKey)
@@ -270,8 +291,8 @@ export default function AllCasesPage() {
             </button>
           ))}
         </div>
-        {/* Sort dropdown */}
-        <div className="flex items-center gap-2">
+        {/* Sort dropdown + Year filter */}
+        <div className="flex items-center gap-2 flex-wrap">
           <label className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">Sort by:</label>
           <select
             value={sortKey}
@@ -279,6 +300,15 @@ export default function AllCasesPage() {
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {SORT_OPTIONS.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+          <select
+            value={yearFilter}
+            onChange={e => setYearFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {YEAR_OPTIONS.map(o => (
               <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
@@ -292,7 +322,7 @@ export default function AllCasesPage() {
           <p>No cases match your filter.</p>
           {(filter !== 'all' || search || fileTypeFilter !== 'all') && (
             <button
-              onClick={() => { setFilter('all'); setSearch(''); setFileTypeFilter('all') }}
+              onClick={() => { setFilter('all'); setSearch(''); setFileTypeFilter('all'); setYearFilter('all') }}
               className="mt-3 text-blue-700 hover:underline text-sm"
             >
               Clear filters

@@ -32,6 +32,15 @@ const SORT_OPTIONS = [
   { key: 'associate_asc', label: 'Associate Name' },
 ]
 
+const YEAR_OPTIONS = [
+  { key: 'all', label: 'All Years' },
+  { key: '2022', label: '2022' },
+  { key: '2023', label: '2023' },
+  { key: '2024', label: '2024' },
+  { key: '2025', label: '2025' },
+  { key: '2026', label: '2026' },
+]
+
 // Parse a file number like "TLS-22-008" or "TRW-25-112" into sortable parts
 function parseFileNumber(fn) {
   if (!fn) return { prefix: 'ZZZ', year: 9999, seq: 9999, raw: '' }
@@ -88,7 +97,8 @@ export default function AllCases() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [visFilter, setVisFilter] = useState('all')
-  const [fileTypeFilter, setFileTypeFilter] = useState('all') // 'all', 'chamber', 'court'
+  const [fileTypeFilter, setFileTypeFilter] = useState('all') // 'all', 'chamber', 'temporary', 'court'
+  const [yearFilter, setYearFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState('updated_desc')
 
@@ -124,6 +134,12 @@ export default function AllCases() {
     const matchStatus = filter === 'all' || c.status === filter
     const matchVis = visFilter === 'all' || (visFilter === 'public' ? c.is_public !== false : c.is_public === false)
     const matchFileType = fileTypeFilter === 'all' || (c.file_type || 'chamber') === fileTypeFilter
+    const matchYear = yearFilter === 'all' || (() => {
+      const parsed = parseFileNumber(c.file_number)
+      // Normalise 2-digit years for matching
+      const y = parsed.year < 100 ? parsed.year + 2000 : parsed.year
+      return String(y) === yearFilter
+    })()
     const q = search.toLowerCase()
     const matchSearch = !q ||
       c.client_name?.toLowerCase().includes(q) ||
@@ -131,7 +147,7 @@ export default function AllCases() {
       c.court_case_number?.toLowerCase().includes(q) ||
       c.file_number?.toLowerCase().includes(q) ||
       c.profiles?.full_name?.toLowerCase().includes(q)
-    return matchStatus && matchVis && matchSearch && matchFileType
+    return matchStatus && matchVis && matchSearch && matchFileType && matchYear
   })
 
   const sorted = sortCases(filtered, sortKey)
@@ -199,7 +215,7 @@ export default function AllCases() {
             ))}
           </div>
           {/* Sort dropdown */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <label className="text-xs text-gray-500 whitespace-nowrap hidden sm:block">Sort by:</label>
             <select
               value={sortKey}
@@ -207,6 +223,17 @@ export default function AllCases() {
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {SORT_OPTIONS.map(o => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+              <option disabled>──────────</option>
+              <option value="year_group" disabled style={{fontWeight:'bold',color:'#374151'}}>── Filter by Year ──</option>
+            </select>
+            <select
+              value={yearFilter}
+              onChange={e => setYearFilter(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {YEAR_OPTIONS.map(o => (
                 <option key={o.key} value={o.key}>{o.label}</option>
               ))}
             </select>
