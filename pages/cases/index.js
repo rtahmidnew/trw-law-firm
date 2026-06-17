@@ -23,13 +23,12 @@ function VisibilityBadge({ isPublic }) {
 
 function FileTypeLabel({ fileType }) {
   if (fileType === 'court') {
-    return (
-      <span className="text-xs font-medium text-teal-700">Court File</span>
-    )
+    return <span className="text-xs font-medium text-teal-700">Court File</span>
   }
-  return (
-    <span className="text-xs font-medium text-indigo-700">Chamber File</span>
-  )
+  if (fileType === 'temporary') {
+    return <span className="text-xs font-medium text-amber-700">Temporary File</span>
+  }
+  return <span className="text-xs font-medium text-indigo-700">Chamber File</span>
 }
 
 const SORT_OPTIONS = [
@@ -166,6 +165,7 @@ export default function AllCasesPage() {
 
   const chamberCount = cases.filter(c => (c.file_type || 'chamber') === 'chamber').length
   const courtCount = cases.filter(c => c.file_type === 'court').length
+  const tempCount = cases.filter(c => c.file_type === 'temporary').length
 
   const pageTitle = viewMode === 'mine'
     ? (filter === 'open' ? 'My Open Cases' : filter === 'closed' ? 'My Closed Cases' : 'My Cases')
@@ -209,38 +209,26 @@ export default function AllCasesPage() {
         </button>
       </div>
 
-      {/* File Type Filter Buttons — same style as Public/Private visibility */}
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setFileTypeFilter('all')}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-            fileTypeFilter === 'all'
-              ? 'bg-blue-700 text-white border-blue-700'
-              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
-          }`}
-        >
-          All Files
-        </button>
-        <button
-          onClick={() => setFileTypeFilter('chamber')}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-            fileTypeFilter === 'chamber'
-              ? 'bg-blue-700 text-white border-blue-700'
-              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
-          }`}
-        >
-          Chamber File
-        </button>
-        <button
-          onClick={() => setFileTypeFilter('court')}
-          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-            fileTypeFilter === 'court'
-              ? 'bg-blue-700 text-white border-blue-700'
-              : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
-          }`}
-        >
-          Court File
-        </button>
+      {/* File Type Filter Buttons */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {[
+          { key: 'all', label: 'All Files', activeClass: 'bg-blue-700 text-white border-blue-700' },
+          { key: 'chamber', label: `Chamber File (${chamberCount})`, activeClass: 'bg-indigo-700 text-white border-indigo-700' },
+          { key: 'temporary', label: `Temporary File (${tempCount})`, activeClass: 'bg-amber-600 text-white border-amber-600' },
+          { key: 'court', label: `Court File (${courtCount})`, activeClass: 'bg-teal-700 text-white border-teal-700' },
+        ].map(v => (
+          <button
+            key={v.key}
+            onClick={() => setFileTypeFilter(v.key)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              fileTypeFilter === v.key
+                ? v.activeClass
+                : 'border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-700'
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
       </div>
 
       {/* Search + Status Filter + Sort */}
@@ -337,7 +325,11 @@ export default function AllCasesPage() {
                       <div>
                         <p className="font-medium text-gray-900">{c.client_name}</p>
                         {c.file_number && (
-                          <p className={`text-xs font-mono font-semibold ${(c.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>
+                          <p className={`text-xs font-mono font-semibold ${
+                            (c.file_type || 'chamber') === 'court' ? 'text-teal-700'
+                            : c.file_type === 'temporary' ? 'text-amber-700'
+                            : 'text-indigo-700'
+                          }`}>
                             {c.file_number}
                           </p>
                         )}

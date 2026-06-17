@@ -152,6 +152,7 @@ export default function AllCases() {
   const closedCount = cases.filter(c => c.status === 'closed').length
   const chamberCount = cases.filter(c => (c.file_type || 'chamber') === 'chamber').length
   const courtCount = cases.filter(c => c.file_type === 'court').length
+  const tempCount = cases.filter(c => c.file_type === 'temporary').length
 
   return (
     <Layout>
@@ -238,16 +239,17 @@ export default function AllCases() {
 
           {/* File Type */}
           {[
-            { key: 'all', label: 'All Files' },
-            { key: 'chamber', label: `Chamber File (${chamberCount})` },
-            { key: 'court', label: `Court File (${courtCount})` },
+            { key: 'all', label: 'All Files', activeClass: 'bg-blue-700 text-white border-blue-700' },
+            { key: 'chamber', label: `Chamber File (${chamberCount})`, activeClass: 'bg-indigo-700 text-white border-indigo-700' },
+            { key: 'temporary', label: `Temporary File (${tempCount})`, activeClass: 'bg-amber-600 text-white border-amber-600' },
+            { key: 'court', label: `Court File (${courtCount})`, activeClass: 'bg-teal-700 text-white border-teal-700' },
           ].map(v => (
             <button
               key={v.key}
               onClick={() => setFileTypeFilter(v.key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 fileTypeFilter === v.key
-                  ? 'bg-blue-700 text-white border-blue-700'
+                  ? v.activeClass
                   : 'border-gray-300 text-gray-600 hover:border-blue-400'
               }`}
             >
@@ -286,7 +288,12 @@ export default function AllCases() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {sorted.map(c => {
-                const isCourt = c.file_type === 'court'
+                const ft = c.file_type || 'chamber'
+                const isCourt = ft === 'court'
+                const isTemp = ft === 'temporary'
+                const fileNumColor = isCourt ? 'text-teal-700' : isTemp ? 'text-amber-700' : 'text-indigo-700'
+                const fileLabelColor = isCourt ? 'text-teal-600' : isTemp ? 'text-amber-600' : 'text-indigo-600'
+                const fileLabel = isCourt ? 'Court File' : isTemp ? 'Temporary File' : 'Chamber File'
                 return (
                   <tr
                     key={c.id}
@@ -296,12 +303,12 @@ export default function AllCases() {
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{c.client_name}</p>
                       {c.file_number && (
-                        <p className={`text-xs font-mono font-semibold ${isCourt ? 'text-teal-700' : 'text-indigo-700'}`}>
+                        <p className={`text-xs font-mono font-semibold ${fileNumColor}`}>
                           {c.file_number}
                         </p>
                       )}
-                      <p className={`text-xs font-medium mt-0.5 ${isCourt ? 'text-teal-600' : 'text-indigo-600'}`}>
-                        {isCourt ? 'Court File' : 'Chamber File'}
+                      <p className={`text-xs font-medium mt-0.5 ${fileLabelColor}`}>
+                        {fileLabel}
                       </p>
                     </td>
                     <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{c.case_type}</td>

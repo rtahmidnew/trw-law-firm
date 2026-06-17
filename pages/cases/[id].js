@@ -123,22 +123,40 @@ export default function CaseDetail() {
   async function saveEdit() {
     if (!editForm.client_name?.trim()) return
     setSavingEdit(true)
-    const { data } = await supabase
-      .from('cases')
-      .update({
-        client_name: editForm.client_name.trim(),
-        client_contact: editForm.client_contact.trim(),
-        case_type: editForm.case_type,
-        opposing_party: editForm.opposing_party.trim(),
-        court_name: editForm.court_name.trim(),
-        court_case_number: editForm.court_case_number.trim(),
-        file_number: editForm.file_number.trim(),
-        file_type: editForm.file_type || 'chamber',
+    try {
+      // Use the server-side API route which uses the service role key
+      // This allows associates to update any case (bypasses RLS restriction)
+      const { data: { session } } = await supabase.auth.getSession()
+      const userToken = session?.access_token
+      const response = await fetch('/api/update-case', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caseId: id,
+          userToken,
+          updates: {
+            client_name: editForm.client_name.trim(),
+            client_contact: editForm.client_contact.trim(),
+            case_type: editForm.case_type,
+            opposing_party: editForm.opposing_party.trim(),
+            court_name: editForm.court_name.trim(),
+            court_case_number: editForm.court_case_number.trim(),
+            file_number: editForm.file_number.trim(),
+            file_type: editForm.file_type || 'chamber',
+          }
+        })
       })
-      .eq('id', id)
-      .select()
-      .single()
-    setCaseData(data)
+      const result = await response.json()
+      if (result.success && result.data) {
+        setCaseData(result.data)
+      } else {
+        console.error('Save failed:', result.error)
+        // Fallback: refresh the page data
+        await fetchCase()
+      }
+    } catch (err) {
+      console.error('Save error:', err)
+    }
     setEditing(false)
     setSavingEdit(false)
   }

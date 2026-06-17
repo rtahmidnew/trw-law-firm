@@ -59,8 +59,8 @@ export default function NewCase() {
     setForm(prev => ({
       ...prev,
       file_type: type,
-      // Clear court fields when switching to chamber
-      ...(type === 'chamber' ? { court_name: '', court_case_number: '' } : {}),
+      // Clear court fields when switching to non-court
+      ...(type !== 'court' ? { court_name: '', court_case_number: '' } : {}),
     }))
   }
 
@@ -90,6 +90,7 @@ export default function NewCase() {
 
   const isChamber = form.file_type === 'chamber'
   const isCourt = form.file_type === 'court'
+  const isTemp = form.file_type === 'temporary'
 
   return (
     <Layout>
@@ -117,6 +118,7 @@ export default function NewCase() {
             <div className="border-b border-gray-100 pb-5">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Filing Type</h2>
               <div className="flex gap-3">
+                {/* Chamber File */}
                 <button
                   type="button"
                   onClick={() => setFileType('chamber')}
@@ -128,8 +130,23 @@ export default function NewCase() {
                 >
                   <svg className={`w-5 h-5 ${isChamber ? 'text-gray-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 6l9-4 9 4M3 6v12l9 4 9-4V6M12 2v20M3 12h18" /></svg>
                   <span>Chamber File</span>
-                  <span className="text-xs font-normal text-gray-400">Advisory, drafting, non-court matters</span>
+                  <span className="text-xs font-normal text-gray-400">Advisory, drafting, long-term</span>
                 </button>
+                {/* Temporary File */}
+                <button
+                  type="button"
+                  onClick={() => setFileType('temporary')}
+                  className={`flex-1 flex flex-col items-center justify-center gap-1.5 px-4 py-4 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    isTemp
+                      ? 'bg-amber-50 border-amber-600 text-amber-800'
+                      : 'border-gray-200 text-gray-500 hover:border-amber-300 hover:bg-amber-50/50'
+                  }`}
+                >
+                  <svg className={`w-5 h-5 ${isTemp ? 'text-gray-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span>Temporary File</span>
+                  <span className="text-xs font-normal text-gray-400">Tax, divorce, affidavit, short-term</span>
+                </button>
+                {/* Court File */}
                 <button
                   type="button"
                   onClick={() => setFileType('court')}
@@ -146,7 +163,12 @@ export default function NewCase() {
               </div>
               {isChamber && (
                 <p className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2">
-                  Chamber File — internal file number (TRW-YYYY-NNN format), no court case number required.
+                  Chamber File — long-term advisory and drafting matters. File number format: TRW-YYYY-001 to TRW-YYYY-099.
+                </p>
+              )}
+              {isTemp && (
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                  Temporary File — short-duration matters (tax returns, divorce, affidavits, translations). File number format: TRW-YYYY-100+.
                 </p>
               )}
               {isCourt && (
@@ -216,11 +238,11 @@ export default function NewCase() {
                     value={form.file_number}
                     onChange={handleChange}
                     className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                      isChamber
-                        ? 'border-indigo-200 focus:ring-indigo-500 bg-indigo-50/30'
-                        : 'border-teal-200 focus:ring-teal-500 bg-teal-50/30'
+                      isChamber ? 'border-indigo-200 focus:ring-indigo-500 bg-indigo-50/30'
+                      : isTemp ? 'border-amber-200 focus:ring-amber-500 bg-amber-50/30'
+                      : 'border-teal-200 focus:ring-teal-500 bg-teal-50/30'
                     }`}
-                    placeholder={isChamber ? 'e.g. TRW-2026-001' : 'e.g. TRW-2026-001'}
+                    placeholder={isTemp ? 'e.g. TRW-2026-101' : 'e.g. TRW-2026-001'}
                   />
                 </div>
                 <div className="sm:col-span-2">
