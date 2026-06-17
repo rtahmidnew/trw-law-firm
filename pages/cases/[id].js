@@ -551,9 +551,11 @@ export default function CaseDetail() {
             <div className="flex-1">
               <div className="flex items-center gap-3 flex-wrap">
                 {(caseData.file_type || 'chamber') === 'court' ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">Court Filing</span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">Court File</span>
+                ) : (caseData.file_type === 'temporary') ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">Temporary File</span>
                 ) : (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">Chamber Filing</span>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">Chamber File</span>
                 )}
                 <h1 className="text-2xl font-bold text-gray-900">{caseData.client_name}</h1>
                 <StatusBadge status={caseData.status} />
@@ -582,7 +584,11 @@ export default function CaseDetail() {
                   <p><span className="text-gray-400">Court No.:</span> {caseData.court_case_number}</p>
                 )}
                 {caseData.file_number && (
-                  <p><span className="text-gray-400">File No.:</span> <span className={`font-mono font-semibold ${(caseData.file_type || 'chamber') === 'court' ? 'text-teal-700' : 'text-indigo-700'}`}>{caseData.file_number}</span></p>
+                  <p><span className="text-gray-400">File No.:</span> <span className={`font-mono font-semibold ${
+                    (caseData.file_type || 'chamber') === 'court' ? 'text-teal-700' :
+                    caseData.file_type === 'temporary' ? 'text-amber-700' :
+                    'text-indigo-700'
+                  }`}>{caseData.file_number}</span></p>
                 )}
                 <p><span className="text-gray-400">Opened:</span> {new Date(caseData.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
@@ -712,7 +718,7 @@ export default function CaseDetail() {
             {/* File Type Selector */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-gray-500 mb-2">Filing Type</label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setEditForm(p => ({ ...p, file_type: 'chamber' }))}
@@ -722,7 +728,18 @@ export default function CaseDetail() {
                       : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
                   }`}
                 >
-                  Chamber Filing
+                  Chamber File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditForm(p => ({ ...p, file_type: 'temporary' }))}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all ${
+                    editForm.file_type === 'temporary'
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'border-amber-300 text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  Temporary File
                 </button>
                 <button
                   type="button"
@@ -733,7 +750,7 @@ export default function CaseDetail() {
                       : 'border-teal-200 text-teal-700 hover:bg-teal-50'
                   }`}
                 >
-                  Court Filing
+                  Court File
                 </button>
               </div>
             </div>
