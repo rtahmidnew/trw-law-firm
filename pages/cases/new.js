@@ -163,17 +163,17 @@ export default function NewCase() {
               </div>
               {isChamber && (
                 <p className="mt-2 text-xs text-indigo-600 bg-indigo-50 rounded-lg px-3 py-2">
-                  Chamber File — long-term advisory and drafting matters. File number format: TRW-YYYY-001 to TRW-YYYY-099.
+                  Chamber File — long-term advisory and drafting matters. File number format: TRW-YYYY-001 (e.g. TRW-2026-001).
                 </p>
               )}
               {isTemp && (
                 <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
-                  Temporary File — short-duration matters (tax returns, divorce, affidavits, translations). File number format: TRW-YYYY-100+.
+                  Temporary File — short-duration matters (tax returns, divorce, affidavits, translations). File number format: TRW-YYYY-T001 (e.g. TRW-2026-T101).
                 </p>
               )}
               {isCourt && (
                 <p className="mt-2 text-xs text-teal-700 bg-teal-50 rounded-lg px-3 py-2">
-                  Court File — requires court name and court case number. Hearing dates managed in Case Diary.
+                  Court File — litigation and court proceedings. File number format: TRW-YYYY-COURT001 (e.g. TRW-2026-COURT001). Hearing dates managed in Case Diary.
                 </p>
               )}
             </div>
@@ -242,7 +242,7 @@ export default function NewCase() {
                       : isTemp ? 'border-amber-200 focus:ring-amber-500 bg-amber-50/30'
                       : 'border-teal-200 focus:ring-teal-500 bg-teal-50/30'
                     }`}
-                    placeholder={isTemp ? 'e.g. TRW-2026-101' : 'e.g. TRW-2026-001'}
+                    placeholder={isTemp ? 'e.g. TRW-2026-T101' : isCourt ? 'e.g. TRW-2026-COURT001' : 'e.g. TRW-2026-001'}
                   />
                 </div>
                 <div className="sm:col-span-2">

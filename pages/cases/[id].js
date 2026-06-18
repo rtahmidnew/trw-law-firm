@@ -820,8 +820,17 @@ export default function CaseDetail() {
                   value={editForm.file_number}
                   onChange={e => setEditForm(p => ({ ...p, file_number: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. TRW-2026-01-001"
+                  placeholder={
+                    editForm.file_type === 'temporary' ? 'e.g. TRW-2026-T101' :
+                    editForm.file_type === 'court' ? 'e.g. TRW-2026-COURT001' :
+                    'e.g. TRW-2026-001'
+                  }
                 />
+                <p className="mt-1 text-xs text-gray-400">
+                  {editForm.file_type === 'temporary' ? 'Temporary files use T-prefix: TRW-YYYY-T001' :
+                   editForm.file_type === 'court' ? 'Court files use COURT-prefix: TRW-YYYY-COURT001' :
+                   'Chamber files: TRW-YYYY-001'}
+                </p>
               </div>
             </div>
             <div className="flex gap-2 mt-5">
