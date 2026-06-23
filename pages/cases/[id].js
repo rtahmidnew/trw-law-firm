@@ -240,33 +240,65 @@ export default function CaseDetail() {
   }
 
   // ── Documents ────────────────────────────────────────────
+  // Helper: get current session token for API calls
+  async function getSessionToken() {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token
+  }
+
   async function handleFileUpload(e) {
     const files = Array.from(e.target.files)
     if (!files.length) return
     setUploading(true)
 
     const { data: { session: _sess } } = await supabase.auth.getSession(); const user = _sess?.user
+    const userToken = _sess?.access_token
 
     for (const file of files) {
       const filePath = `${id}/${Date.now()}_${file.name}`
-      const { error: uploadError } = await supabase.storage
-        .from('case-documents')
-        .upload(filePath, file)
 
-      if (!uploadError) {
-        const { data: doc } = await supabase
-          .from('documents')
-          .insert({
-            case_id: id,
-            user_id: user.id,
-            file_name: file.name,
-            file_path: filePath,
-            file_type: file.type,
-            file_size: file.size,
+      // Step 1: Get a signed upload URL via service-role API (bypasses storage RLS)
+      const urlRes = await fetch('/api/case-operations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_upload_url', userToken, filePath })
+      })
+      const urlData = await urlRes.json()
+
+      if (!urlData.success) {
+        console.error('Failed to get upload URL:', urlData.error)
+        continue
+      }
+
+      // Step 2: Upload the file directly to storage using the signed URL
+      const uploadRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file
+      })
+
+      if (uploadRes.ok) {
+        // Step 3: Insert document record via service-role API
+        const docRes = await fetch('/api/case-operations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'insert_document',
+            userToken,
+            caseId: id,
+            userId: user?.id,
+            fileName: file.name,
+            filePath,
+            fileType: file.type,
+            fileSize: file.size,
           })
-          .select()
-          .single()
-        setDocuments(prev => [doc, ...prev])
+        })
+        const docData = await docRes.json()
+        if (docData.success && docData.data) {
+          setDocuments(prev => [docData.data, ...prev])
+        }
+      } else {
+        console.error('File upload failed:', uploadRes.status, uploadRes.statusText)
       }
     }
     setUploading(false)
@@ -274,14 +306,19 @@ export default function CaseDetail() {
   }
 
   async function getSignedUrl(doc, expiresIn = 300) {
-    const { data, error } = await supabase.storage
-      .from('case-documents')
-      .createSignedUrl(doc.file_path, expiresIn)
-    if (error) {
-      console.error('Signed URL error:', error)
+    // Use service-role API to generate signed URL (bypasses storage RLS)
+    const userToken = await getSessionToken()
+    const res = await fetch('/api/case-operations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_signed_url', userToken, filePath: doc.file_path, expiresIn })
+    })
+    const data = await res.json()
+    if (!data.success) {
+      console.error('Signed URL error:', data.error)
       return null
     }
-    return data?.signedUrl || null
+    return data.signedUrl || null
   }
 
   async function downloadDocument(doc) {
@@ -301,8 +338,12 @@ export default function CaseDetail() {
 
   async function deleteDocument(doc) {
     if (!confirm(`Delete "${doc.file_name}"?`)) return
-    await supabase.storage.from('case-documents').remove([doc.file_path])
-    await supabase.from('documents').delete().eq('id', doc.id)
+    const userToken = await getSessionToken()
+    await fetch('/api/case-operations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_document', userToken, docId: doc.id, filePath: doc.file_path })
+    })
     setDocuments(prev => prev.filter(d => d.id !== doc.id))
   }
 
@@ -448,15 +489,20 @@ export default function CaseDetail() {
 
   async function deleteCase() {
     setDeleting(true)
-    // Delete all storage files first
-    const { data: docs } = await supabase.from('documents').select('file_path').eq('case_id', id)
-    if (docs && docs.length > 0) {
-      const paths = docs.map(d => d.file_path)
-      await supabase.storage.from('case-documents').remove(paths)
+    const userToken = await getSessionToken()
+    const res = await fetch('/api/case-operations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_case', userToken, caseId: id })
+    })
+    const result = await res.json()
+    if (result.success) {
+      // Redirect to appropriate page based on role
+      router.push(profile?.role === 'partner' ? '/admin' : '/cases')
+    } else {
+      console.error('Delete case failed:', result.error)
+      setDeleting(false)
     }
-    // Delete the case (cascades to timeline_entries, documents, deadlines)
-    await supabase.from('cases').delete().eq('id', id)
-    router.push('/admin')
   }
 
   // ── Visibility Update ─────────────────────────────────────
@@ -698,17 +744,15 @@ export default function CaseDetail() {
                   </p>
                 </div>
               )}
-              {/* Delete Case — partner only */}
-              {isPartner && (
-                <div className="pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-400 transition-all w-full justify-center"
-                  >
-                    <IconTrash size={12} /> Delete Case
-                  </button>
-                </div>
-              )}
+              {/* Delete Case — available to all associates and partners */}
+              <div className="pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 hover:border-red-400 transition-all w-full justify-center"
+                >
+                  <IconTrash size={12} /> Delete Case
+                </button>
+              </div>
             </div>
           </div>
         ) : (

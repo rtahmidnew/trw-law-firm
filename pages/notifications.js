@@ -44,7 +44,20 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     fetchNotifications();
+    // Auto-clear previous-day notifications on page load
+    clearPreviousDayNotifications();
   }, []);
+
+  async function clearPreviousDayNotifications() {
+    // Delete all notifications created before today (midnight local time)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
+    await supabase
+      .from('notifications')
+      .delete()
+      .lt('created_at', todayISO);
+  }
 
   async function fetchNotifications() {
     setLoading(true);
@@ -67,10 +80,14 @@ export default function NotificationsPage() {
   }
 
   async function markAllAsRead() {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-    if (unreadIds.length === 0) return;
-    await supabase.from('notifications').update({ is_read: true }).in('id', unreadIds);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    // Mark all as read AND delete them from DB so they don't reappear
+    const allIds = notifications.map(n => n.id);
+    if (allIds.length === 0) return;
+    // Delete all notifications from DB
+    await supabase.from('notifications').delete().in('id', allIds);
+    // Clear from UI immediately
+    allIds.forEach(id => deletedIds.current.add(id));
+    setNotifications([]);
   }
 
   async function deleteNotification(id) {
